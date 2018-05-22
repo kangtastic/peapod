@@ -264,8 +264,7 @@ char* packet_decode(uint8_t val, const struct decode_t *decode)
  * @iface: A pointer to a struct iface_t structure representing a network
  *         interface.
  *
- * Returns the number of bytes successfully sent. The success or failure of
- * the script execution is neither tracked nor reported.
+ * Returns the number of bytes successfully sent.
  */
 int packet_send(struct peapod_packet packet, struct iface_t *iface)
 {

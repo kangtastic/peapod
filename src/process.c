@@ -54,15 +54,15 @@ static int filter(struct filter_t *filter, char *name_orig,
  * Execute a script.
  * The script is run with several environment variables set containing at least
  * the entire Base64-encoded frame at the time of capture on an ingress
- * interface, the entire "cooked" frame that is being sent on an egress
- * interface (if applicable), and associated metadata extracted from @packet.
+ * interface, the entire frame that is being sent (if applicable) on an egress
+ * interface (which may have 802.1Q data added/removed), and associated metadata
+ * extracted from @packet.
  *
  * @packet: A struct peapod_packet structure representing an EAPOL frame.
  * @script: A pointer to a C string containing the path of the script to be
  *          executed.
  *
- * Returns nothing. The success or failure of the script execution is neither
- * tracked nor reported.
+ * Returns nothing.
  */
 static void script(struct peapod_packet packet, char *script)
 {
@@ -72,7 +72,17 @@ static void script(struct peapod_packet packet, char *script)
 		return;
 	}
 	else if (pid > 0) {
-		wait(NULL);
+		int status;
+
+		if (waitpid(-1, &status, 0) == -1) {
+			ewarning("cannot wait for script execution: %s");
+		} else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+			warning("script did not exit cleanly (code %d)",
+				WEXITSTATUS(status));
+		} else if (WIFSIGNALED(status)) {
+			warning("script was terminated by a signal");
+		}
+
 		return;
 	}
 
@@ -200,8 +210,8 @@ static void script(struct peapod_packet packet, char *script)
 		setenv("PKT_TCI", buf + 4, 1);		/* cut TPID leave TCI */
 	}
 
-	execve(script, argv, environ);
-	exit(EXIT_SUCCESS);	/* SUCCESS, even if execve() returns error */
+	if (execve(script, argv, environ) == -1)
+		exit(errno);	/* We failed and can't really signal why :) */
 }
 
 /**
@@ -213,7 +223,7 @@ static void script(struct peapod_packet packet, char *script)
  *         interface.
  * @dir: A flag that specifies whether this function should look for an ingress
  *       or an egress filter mask on @iface. It may be set to
- *       PROCESS_SCRIPT_EGRESS or PROCESS_SCRIPT_INGRESS.
+ *       PROCESS_INGRESS or PROCESS_EGRESS.
  *
  * Returns the result of the underlying call to filter() if there is an ingress
  * or egress filter mask configured on @iface, or 0 otherwise.
@@ -225,7 +235,7 @@ int process_filter(struct peapod_packet packet, struct iface_t *iface, uint8_t d
 	    iface->egress != NULL && iface->egress->filter != NULL) {
 		fltr = iface->egress->filter;
 		return filter(fltr, packet.name_orig, packet.name,
-		      packet.type, packet.code);
+			      packet.type, packet.code);
 	}
 	else if (iface->ingress != NULL && iface->ingress->filter != NULL) {
 		fltr = iface->ingress->filter;
@@ -246,26 +256,24 @@ int process_filter(struct peapod_packet packet, struct iface_t *iface, uint8_t d
  *          defined frame Types. Similarly, the second array contains paths to
  *          scripts that are executed if the frame encapsulates an EAP-Packet of
  *          one of the four defined EAP-Packet Codes.
- * @dir: A flag that influences the output emitted by this function. It may be
- *       set to PROCESS_SCRIPT_EGRESS or PROCESS_SCRIPT_INGRESS.
+ * @dir: A flag that represents whether @packet has just been received or is
+ *       about to be sent. It may be set to PROCESS_INGRESS or PROCESS_EGRESS.
  *
- * Returns nothing. The success or failure of the script execution is neither
- * tracked nor reported.
+ * Returns nothing.
  */
 void process_script(struct peapod_packet packet, struct action_t *action,
 		    uint8_t dir)
 {
-	/* "EAPOL-Start frame from 'eth0' leaving on 'eth1'; "
-	 * "executing '/path/to/script'"
-	 */
-	char *fmt_egress = "%s %s from '%s' leaving on '%%s'; executing '%%s'";
-
-	/* "Success EAP-Packet entering on 'eth1'; executing '/script/path'" */
-	char *fmt_ingress = "%s %s entering on '%%s'; executing '%%s'";
-
 	char *desc = NULL;		/* see struct decode_t */
 	char *framepkt = NULL;		/* "frame" or "EAP-Packet" */
 	char *path = NULL;
+
+	/* Sample outputs:
+	 * "received Success EAP-Packet on 'eth1'; executing '...'"
+	 * "sending EAPOL-Start frame from 'eth0' on 'eth1'; executing '...'"
+	 */
+	char *fmt_ingress = "received %s %s on '%%s'; executing '%%s'";
+	char *fmt_egress = "sending %s %s from '%s' on '%%s'; executing '%%s'";
 
 	char buf[128] = { "" };
 

@@ -1,6 +1,5 @@
 #include "includes.h"
 
-static char *canon_path(const char *path, int create);
 static void print_args(void);
 
 static char opts[] = ":hdp:c:tl::svno";
@@ -22,20 +21,46 @@ static struct option long_opts[] = {
 struct args_t args;		/* global */
 
 /**
+ * Print the global program arguments data structure.
+ *
+ * Returns nothing.
+ */
+static void print_args(void) {
+	debuglow("\targs = {");
+	debuglow("\t\thelp=%u", args.help);
+	debuglow("\t\tdaemon=%u", args.daemon);
+	debuglow("\t\tpidfile='%s'", args.pidfile);
+	debuglow("\t\tconffile='%s'", args.conffile);
+	debuglow("\t\ttest=%u", args.test);
+	debuglow("\t\tlevel=%u", args.level);
+	debuglow("\t\tlogfile='%s'", args.logfile);
+	debuglow("\t\tsyslog=%u", args.syslog);
+	debuglow("\t\tcolor=%u", args.color);
+	debuglow("\t\tquiet=%u", args.quiet);
+	debuglow("\t\toneshot=%u", args.oneshot);
+	debuglow("\t}");
+}
+
+/**
  * Validate and canonicalize a path.
  *
  * @path: A pointer to a C string containing a path.
  * @create: A flag to control whether this function attempts to create the
- *          nonexistent final directory component of a successfully validated and
- *          canonicalized path as the current user, mode 0644. Other missing
+ *          nonexistent final directory component of a successfully validated
+ *          and canonicalized path as the current user, mode 0644. Other missing
  *          directory components (parent directories) cause failure.
+ *
+ *          The reason for this behavior is to create subdirectories in /etc,
+ *          /var/log and /var/run for the default locations of the program
+ *          config file, log file, and PID file.
  *
  * If successful, the caller is responsible for free()ing the result.
  *
  * Returns a pointer to a C string if successful, or NULL if unsuccessful.
  */
-static char *canon_path(const char *path, int create)
+char *args_canonpath(const char *path, int create)
 {
+	/* TODO: Break this function out of args.c */
 	char *rpath = realpath(path, NULL);
 
 	if (rpath == NULL && errno == ENOENT && create == 1) {
@@ -79,27 +104,6 @@ static char *canon_path(const char *path, int create)
 }
 
 /**
- * Print the global program arguments data structure.
- *
- * Returns nothing.
- */
-static void print_args(void) {
-	debuglow("\targs = {");
-	debuglow("\t\thelp=%u", args.help);
-	debuglow("\t\tdaemon=%u", args.daemon);
-	debuglow("\t\tpidfile='%s'", args.pidfile);
-	debuglow("\t\tconffile='%s'", args.conffile);
-	debuglow("\t\ttest=%u", args.test);
-	debuglow("\t\tlevel=%u", args.level);
-	debuglow("\t\tlogfile='%s'", args.logfile);
-	debuglow("\t\tsyslog=%u", args.syslog);
-	debuglow("\t\tcolor=%u", args.color);
-	debuglow("\t\tquiet=%u", args.quiet);
-	debuglow("\t\toneshot=%u", args.oneshot);
-	debuglow("\t}");
-}
-
-/**
  * Parse command-line arguments and sets the corresponding
  * fields in the global struct args_t args above.
  *
@@ -125,11 +129,11 @@ int args_get(int argc, char* argv[]) {
 			break;
 		case 'p':
 			;
-			if ((args.pidfile = canon_path(optarg, 1)) == NULL)
+			if ((args.pidfile = args_canonpath(optarg, 1)) == NULL)
 				goto abort_path;
 			break;
 		case 'c':
-			if ((args.conffile = canon_path(optarg, 1)) == NULL)
+			if ((args.conffile = args_canonpath(optarg, 1)) == NULL)
 				goto abort_path;
 			break;
 		case 't':
@@ -146,7 +150,7 @@ int args_get(int argc, char* argv[]) {
 				optarg = argv[optind++];
 			if (optarg == NULL)
 				optarg = PEAPOD_LOG_PATH;
-			if ((args.logfile = canon_path(optarg, 1)) == NULL)
+			if ((args.logfile = args_canonpath(optarg, 1)) == NULL)
 				goto abort_path;
 			break;
 		case 's':
@@ -187,13 +191,13 @@ abort_mandatory:
 		cerr("ignoring leftover arguments\n");
 
 	if (args.conffile == NULL &&
-	    (args.conffile = canon_path(PEAPOD_CONF_PATH, 1)) == NULL) {
+	    (args.conffile = args_canonpath(PEAPOD_CONF_PATH, 1)) == NULL) {
 		cerr("a config file is required\n");
 		return -1;
 	}
 
 	if (args.daemon == 1 && args.pidfile == NULL &&
-	    (args.pidfile = canon_path(PEAPOD_PID_PATH, 1)) == NULL) {
+	    (args.pidfile = args_canonpath(PEAPOD_PID_PATH, 1)) == NULL) {
 		cerr("a PID file is required to run as a daemon\n");
 		return -1;
 	}

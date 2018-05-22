@@ -107,6 +107,7 @@ static char *dequotify(const char *in)
 	return ret;
 }
 
+/* caller responsible for free()ing the result */
 static char *dequotify_path(const char *path)
 {
 	if (path[0] != '/') {
@@ -116,7 +117,19 @@ static char *dequotify_path(const char *path)
 			abort_parser();
 		}
 	}
-	return dequotify(path);
+
+	char *dequotified = dequotify(path);
+
+	if (access(dequotified, X_OK) == -1) {
+		eerr("script '%s' is not executable (line %d): %s",
+		     dequotified, linenum);
+		abort_parser();
+	}
+
+	char *ret = args_canonpath(dequotified, 0);
+	free(dequotified);
+
+	return ret;
 }
 
 void parser_print_ifaces(struct iface_t *list)
@@ -133,7 +146,7 @@ void parser_print_ifaces(struct iface_t *list)
 	debuglow("\t  skt=%d", list->skt);
 	if (list->ingress != NULL) {
 		struct ingress_t *ingress = list->ingress;
-		debuglow("\t  ingress=%p {", ingress);
+		debuglow("\t  ingress: %p {", ingress);
 		if (ingress->set_mac[0] != '\0')
 			debuglow("\t    set_mac=\"%s\"", ingress->set_mac);
 		else
@@ -154,10 +167,10 @@ void parser_print_ifaces(struct iface_t *list)
 	}
 	if (list->egress != NULL) {
 		struct egress_t *egress = list->egress;
-		debuglow("\t  egress=%p {", egress);
+		debuglow("\t  egress: %p {", egress);
 		if (egress->tci != NULL) {
 			struct tci_t *tci = egress->tci;
-			debuglow("\t    tci=%p {", tci);
+			debuglow("\t    tci: %p {", tci);
 			debuglow("\t      pcp=0x%.02x", tci->pcp);
 			debuglow("\t      dei=0x%.02x", tci->dei);
 			debuglow("\t      vid=0x%.04x", tci->vid);
@@ -170,6 +183,8 @@ void parser_print_ifaces(struct iface_t *list)
 		if (egress->action != NULL)
 			print_action(egress->action);
 		debuglow("\t  }");
+	} else {
+		debuglow("\t  egress=NULL");
 	}
 	debuglow("\t  promisc=%u", list->promisc);
 	if (list->set_mac[ETH_ALEN] == IFACE_SET_MAC)
@@ -178,7 +193,7 @@ void parser_print_ifaces(struct iface_t *list)
 		debuglow("\t  set_mac=none");
 
 	if (list->next != NULL)
-		debuglow("\t  next=%p", list->next);
+		debuglow("\t  next: %p", list->next);
 	else
 		debuglow("\t  next=NULL");
 	debuglow("\t}");
@@ -189,7 +204,7 @@ void parser_print_ifaces(struct iface_t *list)
 
 static void print_filter(struct filter_t *filter)
 {
-	debuglow("\t    filter=%p {", filter);
+	debuglow("\t    filter: %p {", filter);
 	debuglow("\t      frame=0b" u8tob_fmt, u8tob(filter->frame));
 	debuglow("\t      packet=0b" u8tob_fmt, u8tob(filter->packet));
 	debuglow("\t    }");
@@ -197,8 +212,8 @@ static void print_filter(struct filter_t *filter)
 
 static void print_action(struct action_t *action)
 {
-	debuglow("\t    action=%p {", action);
-	debuglow("\t      frame=%p {", action->frame);
+	debuglow("\t    action: %p {", action);
+	debuglow("\t      frame: %p {", action->frame);
 	for (int i = 0; i < 5; i++)
 		if (action->frame[i])
 			debuglow("\t        \"%s\",", action->frame[i]);
@@ -206,7 +221,7 @@ static void print_action(struct action_t *action)
 			debuglow("\t        NULL,");
 	debuglow("\t      }");
 
-	debuglow("\t      packet=%p {", action->packet);
+	debuglow("\t      packet: %p {", action->packet);
 	for (int i = 0; i < 5; i++)
 		if (action->packet[i])
 			debuglow("\t        \"%s\",", action->packet[i]);

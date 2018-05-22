@@ -14,4 +14,5 @@ struct args_t {
 	uint8_t oneshot;
 };
 
+char *args_canonpath(const char *path, int create);
 int args_get(int argc, char* argv[]);

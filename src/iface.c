@@ -234,19 +234,17 @@ int iface_init(struct iface_t *ifaces, int epfd)
 	sll.sll_protocol = htons(ETH_P_ALL);
 
 	for (struct iface_t *i = ifaces; i != NULL; i = i->next) {
-		debug("initialize interface '%s', index %d", i->name, i->index);
-
 		if (i->skt != 0)
 			close(i->skt);
 
 		if (validate(i) == -1 || get_mac(i) == NULL)
 			continue;
 
-		if (i->set_mac[ETH_ALEN] == 0xff) {
-			int result = iface_set_mac(i, NULL) == -1;
+		if (i->set_mac[ETH_ALEN] == IFACE_SET_MAC) {
+			if (iface_set_mac(i, i->set_mac) == -1)
+				warning("won't try to set MAC again, "
+					"interface '%s'", i->name);
 			memset(i->set_mac, 0, ETH_ALEN + 1);	/* oneshot */
-			if (result == -1)
-				warning("continuing; won't attempt that again");
 		}
 
 		i->skt = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -263,11 +261,11 @@ int iface_init(struct iface_t *ifaces, int epfd)
 			     i->name);
 			goto close_socket;
 		}
-		debug("bound socket %d to interface", i->skt);
 
 		if (sockopt(i) == -1 || epoll_register(epfd, i) == -1)
 			goto close_socket;	/* error messages in function */
-		debug("socket registered with epoll");
+		debug("initialized interface '%s', index %d, socket %d",
+		      i->name, i->index, i->skt);
 
 		++ret;
 		continue;
@@ -300,15 +298,13 @@ int iface_count(struct iface_t *ifaces)
  *
  * @iface: A pointer to a struct iface_t structure representing a network
  *         interface.
- * @source: A pointer to a buffer containing ETH_ALEN bytes representing a MAC
- *          address, or NULL to use the set_mac member of @iface.
+ * @source: A pointer to at least ETH_ALEN bytes containing a MAC address.
  *
  * Returns 0 if successful, or -1 if unsuccessful.
  */
 int iface_set_mac(struct iface_t *iface, u_char *source)
 {
-	u_char *new_mac = source != NULL ? source : iface->set_mac;
-	if (new_mac == NULL) {
+	if (source == NULL) {
 		err("cannot determine MAC to set, interface '%s'",
 		      iface->name);
 		return -1;
@@ -321,7 +317,7 @@ int iface_set_mac(struct iface_t *iface, u_char *source)
 		return -1;
 	}
 
-	if (memcmp(new_mac, cur_mac, ETH_ALEN) == 0)
+	if (memcmp(source, cur_mac, ETH_ALEN) == 0)
 		return 0;
 
 	set_ifreq(iface->name);
@@ -347,10 +343,11 @@ int iface_set_mac(struct iface_t *iface, u_char *source)
 		return -1;
 	}
 
-	memcpy(ifr.ifr_hwaddr.sa_data, new_mac, ETH_ALEN);
+	memcpy(ifr.ifr_hwaddr.sa_data, source, ETH_ALEN);
 	ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
 	if (ioctl(skt, SIOCSIFHWADDR, &ifr) == -1) {
-		eerr("cannot set MAC, interface '%s': %s", iface->name);
+		eerr("cannot set MAC to %s, interface '%s': %s",
+		     iface_strmac(source), iface->name);
 		close(skt);
 		return -1;
 	}
@@ -363,8 +360,9 @@ int iface_set_mac(struct iface_t *iface, u_char *source)
 	}
 
 	if (ioctl(skt, SIOCGIFHWADDR, &ifr) == -1 ||
-	    memcmp(ifr.ifr_hwaddr.sa_data, new_mac, ETH_ALEN) != 0) {
-		err("cannot verify MAC, interface '%s'", iface->name);
+	    memcmp(ifr.ifr_hwaddr.sa_data, source, ETH_ALEN) != 0) {
+		err("cannot verify MAC is %s, interface '%s'",
+		    iface_strmac(source), iface->name);
 		close(skt);
 		return -1;
 	}
@@ -372,7 +370,7 @@ int iface_set_mac(struct iface_t *iface, u_char *source)
 	close(skt);
 
 	info("set MAC to %s, interface '%s'",
-	     iface_strmac(new_mac), iface->name);
+	     iface_strmac(source), iface->name);
 
 	return 0;
 }

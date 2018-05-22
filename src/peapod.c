@@ -4,8 +4,8 @@ const char usage[] = {
 "\n"
 "%s - Proxy EAP Daemon\n"
 "\n"
-"Usage:\t%s\t[-d] [-p <pid file>] [-c <config file>] [-t]\n"
-"\t\t[-l [<log file>]] [-s] [-vvv] [-n] [-h]\n"
+"Usage: %s [-dtsnh] [-vvv] [-p <pid file>] [-c <config file>]\n"
+"                              [-l [<log file>]]\n"
 "\n"
 "Mandatory arguments for long options are mandatory for short options too.\n"
 "\n"
@@ -35,6 +35,7 @@ const char usage[] = {
 "\n"
 "  -h, --help           print this help and exit\n"
 "\n"
+"Version: %s\n"
 };
 
 static void help_exit(int status);
@@ -63,7 +64,7 @@ extern struct args_t args;
 static void help_exit(int status)
 {
 	cerr(usage, PEAPOD_PROGRAM, PEAPOD_PROGRAM, PEAPOD_PID_PATH,
-	     PEAPOD_CONF_PATH, PEAPOD_LOG_PATH);
+	     PEAPOD_CONF_PATH, PEAPOD_LOG_PATH, PEAPOD_VERSION);
 	exit(status);
 }
 
