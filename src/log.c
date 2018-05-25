@@ -1,18 +1,37 @@
-#include "includes.h"
+/**
+ * @file log.c
+ * @brief Logging operations.
+ */
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <time.h>
+#include "args.h"
+#include "defaults.h"
+#include "log.h"
+#include "peapod.h"
 
-#define MSGSIZ 1024			/* Message body */
-#define TMSIZ 64			/* Timestamp */
+#define DAEMONIZED	2		/**< @brief Disables console output. */
+#define MSGSIZ		1024		/**< @brief Log message buffer. */
+#define TMSIZ		64		/**< @brief Timestamp buffer. */
 
 static void log_to_file(int level, FILE* out, const char *msg);
 
-/* 5 on-screen characters */
+/**
+ * @name Log level descriptions.
+ *
+ * @p levels[] is 5 on-screen characters, normally used when emitting logs to
+ * syslog or a log file. @p clevels[] is similar but colorized, so we use it
+ * for emitting logs to the console.
+ *
+ * @{
+ */
 static const char *levels[] = {
 	"EMERG", "ALERT", "CRIT ",
 	"ERROR", "WARN ", "NOTE ",
 	"INFO ", "DEBUG", "DBGLO"
 };
 
-/* 5 colorized on-screen characters */
 static const char *clevels[] = {
 	"\x1b[1;4;91mEMERG\x1b[0m",	/* bold, underlined, light red */
 	"\x1b[1;4;93mALERT\x1b[0m",	/* bold, underlined, light yellow */
@@ -24,22 +43,23 @@ static const char *clevels[] = {
 	"DEBUG",			/* default */
 	"DBGLO"
 };
+/** @} */
 
+FILE *log_fs;				/**< @brief Log file. */
 extern struct args_t args;
-FILE *log_fs;
 
 /**
- * Depending on the value of @out, log to a file, stdout, or stderr.
- * Messages are timestamped if logging to stdout or stderr, and additionally
- * datestamped if logging to a file.
+ * @brief Log to a file, @p stdout, or @p stderr.
  *
- * @level: The syslog levels from LOG_EMERG (0) to LOG_DEBUG(7),
- *	   or our own LOG_DEBUGLOW(8) level.
- * @out: A file stream, or NULL to emit to stdout (if @level is below
- *	 LOG_WARNING) or stderr (otherwise).
- * @msg: A pointer to a C string containing a message to be logged.
+ * Messages are timestamped if logging to @p stdout or @p stderr, and
+ * additionally datestamped if logging to a file.
  *
- * Returns nothing.
+ * @param level The level of the message, which may be the @p syslog levels from
+ *              @p LOG_EMERG(0) to @p LOG_DEBUG(7), or our own
+ *              @p LOG_DEBUGLOW(8).
+ * @param out A file stream, or @p NULL to emit to the console - @p stdout if
+ *            @p level is below @p LOG_WARNING, or @p stderr otherwise.
+ * @param msg A C string containing a message to be logged.
  */
 static void log_to_file(int level, FILE* out, const char *msg)
 {
@@ -59,22 +79,21 @@ static void log_to_file(int level, FILE* out, const char *msg)
 		fprintf(out, fmt, buf, ts.tv_nsec / 1000000,
 			levels[level], msg);
 	}
+
 	fflush(out);
 }
 
-/**
- * Initialize program's logging facilities.
- *
- * Returns nothing.
- */
+/** @brief Initialize logging operations. */
 int log_init(void)
 {
+	log_fs = NULL;
+
 	if (args.syslog == 1) {
 		LOG_UPTO(LOG_DEBUG);	/* handle syslog decision ourselves */
-		openlog(PROGRAM, LOG_PID, args.daemon ? LOG_DAEMON : LOG_USER);
+		openlog(PEAPOD_PROGRAM, LOG_PID,
+			args.daemon ? LOG_DAEMON : LOG_USER);
 	}
 
-	log_fs = NULL;
 	if (args.logfile != NULL) {
 		log_fs = fopen(args.logfile, "a");
 		if (log_fs != NULL)  {
@@ -84,20 +103,17 @@ int log_init(void)
 			return -1;
 		}
 	}
+
 	return 0;
 }
 
-/**
- * Prepare program's logging facilities when daemonizing.
- *
- * Returns nothing.
- */
+/** @brief Prepare logging when daemonizing. */
 int log_daemonize(void)
 {
 	if (peapod_close_fds() == -1)
 		return -1;
 
-	args.daemon = DAEMONIZED;	/* Disable console output */
+	args.daemon = DAEMONIZED;	/* Disables console output */
 
 	if (peapod_redir_stdfds() == -1)
 		return -1;
@@ -114,14 +130,19 @@ int log_daemonize(void)
 }
 
 /**
- * Log a message. Emit the same message to stdout/stderr, a log file, and/or
- * syslog, depending on the program arguments and the value of @level.
+ * @brief Log a message.
  *
- * @level: The level of the message, which may be the syslog levels from
- *	   LOG_EMERG (0) to LOG_DEBUG(7), or our own LOG_DEBUGLOW(8) level.
- * @file: The __FILE__ macro, i.e. the source file of the call to log_msg().
- * @line: The __LINE__ macro, i.e. the line in the file of the call to log_msg().
- * @fmt, ...: printf()-style format and variable arguments.
+ * Emit the same message to <tt>stdout</tt>/<tt>stderr</tt>, a log file, and/or
+ * @p syslog, depending on the program arguments and the value of @p level.
+ *
+ * @param level The level of the message, which may be the @p syslog levels from
+ *              @p LOG_EMERG(0) to @p LOG_DEBUG(7), or our own
+ *              @p LOG_DEBUGLOW(8).
+ * @param file The @p \__FILE__ macro, i.e. the source file of the call to
+ *             @p log_msg().
+ * @param line The @p \__LINE__ macro, i.e. the line in the source file of the
+ *             call to @p log_msg().
+ * @param fmt, ... @p printf(3)-style format and variable arguments.
  */
 __attribute__((format (printf, 4, 5)))
 void log_msg(int level, const char *file, int line, const char *fmt, ...)

@@ -1,4 +1,19 @@
-#include "includes.h"
+/**
+ * @file process.c
+ * @brief Process an EAPOL frame/packet.
+ */
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+
+#include "args.h"
+#include "b64enc.h"
+#include "log.h"
+#include "packet.h"
+#include "peapod.h"
+#include "process.h"
 
 static int filter(struct filter_t *filter, char *name_orig,
 		  char *name, __u8 type, __u8 code);
@@ -10,18 +25,22 @@ extern uint8_t *pdu_buf;
 extern int pdu_buf_size;
 
 /**
- * Determine if an EAPOL frame should be filtered (dropped).
+ * @brief Determine if an EAPOL frame should be filtered (dropped).
  *
- * @filter: A pointer to a struct filter_t structure containing filter masks for
- *          EAPOL frame Types and EAP-Packet Codes.
- * @name_orig: A pointer to a C string containing the name of the network
- *             interface on which an EAPOL frame was captured.
- * @name: A pointer to a C string containing the name of the network interface
- *        on which the EAPOL frame will be sent.
- * @type: An EAPOL frame Type.
- * @code: An EAP-Packet Code.
+ * @param filter A pointer to a <tt>struct filter_t</tt> structure containing
+ *               filter masks for EAPOL frame Types and EAP-Packet Codes.
+ * @param name_orig If not @p NULL, a C string containing the name of the
+ *                  network interface on which an EAPOL frame was originally
+ *                  captured.
+ * @param name A C string containing the name of a network interface. If
+ *             @p name_orig is not @p NULL, references the network interface on
+ *             which an EAPOL frame was originally captured. Otherwise,
+ *             references the network interface on which the EAPOL frame will be
+ *             sent.
+ * @param type An EAPOL frame Type.
+ * @param code An EAP-Packet Code.
  *
- * Returns 1 if the frame should be filtered, or 0 otherwise.
+ * @return 1 if the frame should be filtered, or 0 otherwise.
  */
 static int filter(struct filter_t *filter, char *name_orig,
 		  char *name, __u8 type, __u8 code)
@@ -51,18 +70,17 @@ static int filter(struct filter_t *filter, char *name_orig,
 }
 
 /**
- * Execute a script.
+ * @brief Execute a script.
+ *
  * The script is run with several environment variables set containing at least
  * the entire Base64-encoded frame at the time of capture on an ingress
  * interface, the entire frame that is being sent (if applicable) on an egress
- * interface (which may have 802.1Q data added/removed), and associated metadata
- * extracted from @packet.
+ * interface (which may differ from the original in its 802.1Q tag), and
+ * associated metadata extracted from @p packet.
  *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- * @script: A pointer to a C string containing the path of the script to be
- *          executed.
- *
- * Returns nothing.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an EAPOL
+ *               frame.
+ * @param script A C string containing the path of the script to be executed.
  */
 static void script(struct peapod_packet packet, char *script)
 {
@@ -74,21 +92,17 @@ static void script(struct peapod_packet packet, char *script)
 	else if (pid > 0) {
 		int status;
 
-		if (waitpid(-1, &status, 0) == -1) {
+		if (waitpid(-1, &status, 0) == -1)
 			ewarning("cannot wait for script execution: %s");
-		} else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+		else if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
 			warning("script did not exit cleanly (code %d)",
 				WEXITSTATUS(status));
-		} else if (WIFSIGNALED(status)) {
+		else if (WIFSIGNALED(status))
 			warning("script was terminated by a signal");
-		}
 
 		return;
 	}
 
-	/* From now on, we don't care about errors, efficiency, etc.,
-	 * as the main process continues without the child (i.e. us).
-	 */
 	closelog();			/* Goodbye, syslog */
 	peapod_close_fds();		/* Goodbye, sockets/epoll/logfile */
 	peapod_redir_stdfds();		/* Goodbye, stdin/out/err */
@@ -215,18 +229,21 @@ static void script(struct peapod_packet packet, char *script)
 }
 
 /**
- * A wrapper for filter().
- * Calls filter() with appropriate arguments extracted from @packet and @iface.
+ * @brief A wrapper for @p filter().
  *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
- * @dir: A flag that specifies whether this function should look for an ingress
- *       or an egress filter mask on @iface. It may be set to
- *       PROCESS_INGRESS or PROCESS_EGRESS.
+ * Calls @p filter() with the appropriate parameters extracted from @p packet
+ * and @p iface.
  *
- * Returns the result of the underlying call to filter() if there is an ingress
- * or egress filter mask configured on @iface, or 0 otherwise.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an EAPOL
+ *               frame.
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @param dir A flag that specifies whether this function should look for an
+ *            ingress or an egress filter mask on @p iface. It may be set to
+ *            @p PROCESS_INGRESS or @p PROCESS_EGRESS.
+ *
+ * @return The result of the underlying call to @p filter() if there is an
+ *         ingress or egress filter mask configured on @p iface, or 0 otherwise.
  */
 int process_filter(struct peapod_packet packet, struct iface_t *iface, uint8_t dir)
 {
@@ -246,20 +263,23 @@ int process_filter(struct peapod_packet packet, struct iface_t *iface, uint8_t d
 }
 
 /**
- * A wrapper for script().
- * Calls script() with appropriate arguments extracted from @packet and @action.
+ * @brief A wrapper for @p script().
  *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- * @action: A pointer to a struct action_t structure containing two arrays of C
- *          strings. The first array contains paths to scripts that are executed
- *          if the EAPOL frame represented by @packet is of one of the five
- *          defined frame Types. Similarly, the second array contains paths to
- *          scripts that are executed if the frame encapsulates an EAP-Packet of
- *          one of the four defined EAP-Packet Codes.
- * @dir: A flag that represents whether @packet has just been received or is
- *       about to be sent. It may be set to PROCESS_INGRESS or PROCESS_EGRESS.
+ * Calls @p script() with appropriate arguments extracted from @p packet and
+ * @p action.
  *
- * Returns nothing.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an EAPOL
+ *               frame.
+ * @param action A pointer to a <tt>struct action_t</tt> structure containing
+ *               two arrays of C strings. The first array contains paths to
+ *               scripts that are executed if the EAPOL frame represented by
+ *               @p packet is of one of the five defined frame Types. Similarly,
+ *               the second array contains paths to scripts that are executed if
+ *               the frame encapsulates an EAP-Packet of one of the four defined
+ *               EAP-Packet Codes.
+ * @param dir A flag that represents whether @p packet has just been received or
+ *            is about to be sent. It may be set to @p PROCESS_INGRESS or
+ *            @p PROCESS_EGRESS.
  */
 void process_script(struct peapod_packet packet, struct action_t *action,
 		    uint8_t dir)

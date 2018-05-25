@@ -1,4 +1,10 @@
+/**
+ * @file iface.h
+ * @brief Function prototypes for @p iface.c.
+ */
 #pragma once
+
+#include "parser.h"
 
 int iface_init(struct iface_t *ifaces, int epfd);
 int iface_count(struct iface_t *ifaces);

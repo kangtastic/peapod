@@ -1,4 +1,18 @@
-#include "includes.h"
+/**
+ * @file iface.c
+ * @brief Network interface and socket setup.
+ */
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/ether.h>
+#include <linux/filter.h>
+#include <linux/if_packet.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include "iface.h"
+#include "log.h"
 
 static int validate(struct iface_t *iface);
 static int epoll_register(int epfd, struct iface_t *iface);
@@ -6,42 +20,71 @@ static u_char *get_mac(struct iface_t *iface);
 static int sockopt(struct iface_t *iface);
 static inline void set_ifreq(char *name);
 
-/* PAE Group Address (IEEE Std 802.1X-2001 §7.8) */
+/**
+ * @brief Multicast Port Access Entity (802.1X/EAPOL) Group MAC Address.
+ * @see IEEE Std 802.1X-2001 §7.8.
+ */
 static const unsigned char pae_group_addr[ETH_ALEN] = {
 	0x01, 0x80, 0xc2, 0x00, 0x00, 0x03
 };
 
 /**
- * Scenario: Create a socket with ETH_P_PAE as the @protocol. Set the
- * PACKET_AUXDATA option on the socket. Receive tpacket_auxdata structures
- * with readmsg() that contain 802.1Q tag info.
+ * @name BPF filter for EAPOL frames
  *
- * Just kidding! ETH_P_PAE means no tpacket_auxdata structures. Thanks, Linux!
+ * Scenario - Create a socket with @p ETH_P_PAE as the protocol. Set the
+ * @p PACKET_AUXDATA option on the socket. Receive @p tpacket_auxdata structures
+ * with @p recvmsg(2) that contain 802.1Q tag info.
  *
- * Providing our own bpf filter, however, works fine. Note that the filter
- * checks bytes 12:13 - *after* Linux strips out the tag. That's actually nice.
+ * <i>Just kidding!</i> @p ETH_P_PAE means no @p tpacket_auxdata structures.
+ * Thanks, Linux!
+ *
+ * Providing our own @p bpf filter, however, works fine. Note that the filter
+ * checks bytes 12:13 - @a after Linux strips out the tag. That's actually nice.
+ *
+ * @see @p socket(7), "Socket options".
+ * @see @p bpf(2).
+ * @{
+ */
+
+/**
+ * @brief A simple @p bpf filter for EAPOL frames.
+ *
+ * The <tt>tcpdump</tt>-style @p bpf assembly equivalent is:
+ * @code
+ * (000) ldh	[12]
+ * (001) jeq	#0x888e				jt 2	jf 3
+ * (002) ret	#<decently big nonzero>
+ * (003) ret	#0
+ * @endcode
  */
 static struct sock_filter eapol_sock_filter[] = {
-	{ 0x28, 0, 0, 0x0000000c },	// (000) ldh	[12]
-	{ 0x15, 0, 1, 0x0000888e },	// (001) jeq	#0x888e	jt 2	jf 3
-	{ 0x6, 0, 0, 0xbef001ed },	// (002) ret	#<decently big nonzero>
-	{ 0x6, 0, 0, 0x00000000 }	// (003) ret	#0
+	{ 0x28, 0, 0, 0x0000000c }, 
+	{ 0x15, 0, 1, 0x0000888e }, 
+	{ 0x6, 0, 0, 0xbef001ed }, 
+	{ 0x6, 0, 0, 0x00000000 }
 };
+
+/** @brief The complete @p bpf filter program provided to @p setsockopt(3). */
 static const struct sock_fprog eapol_fprog = {
 	.len = 4,
 	.filter = eapol_sock_filter
 };
+/**@}*/
 
+/**
+ * @brief A <tt>struct ifreq</tt> for @p ioctl on sockets.
+ * @see @p netdevice(7).
+ */
 static struct ifreq ifr;
 
 /**
- * Validate a network interface by running some basic checks on it.
- * Also sets the 'mtu' field in @iface to the interface's current MTU.
+ * @brief Check that a network interface is up and get its MTU.
  *
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
- *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * Also sets the @p mtu field of @p iface to the interface's current MTU.
+ * 
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @return 0 if successful, or -1 if unsuccessful.
  */
 static int validate(struct iface_t *iface)
 {
@@ -79,15 +122,15 @@ static int validate(struct iface_t *iface)
 }
 
 /**
- * Registers the 'skt' member of @iface with an epoll instance.
- * Set as the event data a pointer to the same struct iface_t structure
- * as that pointed to by the @iface argument.
+ * @brief Register the @p skt field of @p iface with an @p epoll instance.
  *
- * @epfd: A file descriptor for an epoll instance.
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
+ * As the event data, provide @p iface itself, so we know on which interface an
+ * @p EPOLLIN event occurred.
  *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * @param epfd A file descriptor for an @p epoll instance.
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @return 0 if successful, or -1 if unsuccessful.
  */
 static int epoll_register(int epfd, struct iface_t *iface)
 {
@@ -104,14 +147,13 @@ static int epoll_register(int epfd, struct iface_t *iface)
 }
 
 /**
- * Query the kernel for the MAC address of a network interface. For this
- * function to succeed, the interface must be an Ethernet interface.
+ * @brief Query the kernel for the MAC address of a network interface.
  *
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
- *
- * Returns a pointer to a static buffer containing ETH_ALEN bytes if successful,
- * or a null pointer if unsuccessful.
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @return A pointer to a static buffer containing @p ETH_ALEN bytes if
+ *         successful, or @p NULL if unsuccessful.
+ * @note For this to succeed, the interface must be an Ethernet interface.
  */
 static u_char *get_mac(struct iface_t *iface)
 {
@@ -148,14 +190,15 @@ static u_char *get_mac(struct iface_t *iface)
 
 
 /**
- * Set socket options for the 'skt' member of a struct iface_t structure.
- * Attaches a bpf filter for the 802.1X EtherType, sets multicast or
- * promiscuous mode, and requests a PACKET_AUXDATA cmsg from the kernel.
+ * @brief Set socket options for the @p skt field of a struct iface_t structure.
  *
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
+ * Attaches a @p bpf filter for the 802.1X EtherType, sets multicast or
+ * promiscuous mode, and requests a @p PACKET_AUXDATA cmsg from the kernel.
  *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @return 0 if successful, or -1 if unsuccessful.
+ * @see @p cmsg(3).
  */
 static int sockopt(struct iface_t *iface)
 {
@@ -186,8 +229,7 @@ static int sockopt(struct iface_t *iface)
 		return -1;
 	}
 
-	/**
-	 * On Linux, a read on a "raw" socket returns a buffer with any VLAN tag
+	/* On Linux, a read on a "raw" socket returns a buffer with any VLAN tag
 	 * stripped, but the tag is recoverable in a control message inside a
 	 * struct tpacket_auxdata. Ask for it here.
 	 */
@@ -201,11 +243,9 @@ static int sockopt(struct iface_t *iface)
 }
 
 /**
- * Prepare the static ifreq structure for use with other functions in this file.
- *
- * @name: A C string containing Linux's name for a network interface.
- *
- * Returns nothing.
+ * @brief Prepare the static <tt>struct ifreq</tt> structure.
+ * @param name A C string containing Linux's name for a network interface.
+ * @see @p netdevice(7).
  */
 static inline void set_ifreq(char *name)
 {
@@ -214,15 +254,16 @@ static inline void set_ifreq(char *name)
 }
 
 /**
- * Create raw sockets for interfaces in a list and add them to an epoll
- * instance. Also set interface MAC if 'set-mac' was specified in the config
- * file as an iface suboption, but not if it was specified as an ingress suboption.
+ * @brief Create raw sockets for interfaces in a list and add them to an
+ *        @p epoll instance.
  *
- * @ifaces: A pointer to a list of struct iface_t structures representing
- *          network interfaces.
- * @epfd: A file descriptor for an epoll instance.
+ * Also set interface MAC if @p set-mac was specified in the config file as an
+ * @p iface suboption, but not if it was specified as an @p ingress suboption.
  *
- * Returns the number of interfaces for which these steps were successful.
+ * @param ifaces A pointer to a list of <tt>struct iface_t</tt> structures
+ *               representing network interfaces.
+ * @param epfd A file descriptor for an @p epoll instance.
+ * @return The number of interfaces for which these steps were successful.
  */
 int iface_init(struct iface_t *ifaces, int epfd)
 {
@@ -276,12 +317,11 @@ close_socket:
 }
 
 /**
- * Find the number of struct iface_t structures in a list of them.
+ * @brief Count the number of struct iface_t structures in a list.
  *
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
- *
- * Returns the number of structures in the list.
+ * @param ifaces A pointer to a list of <tt>struct iface_t</tt> structures
+ *               representing network interfaces.
+ * @return The number of structures in the list.
  */
 int iface_count(struct iface_t *ifaces)
 {
@@ -292,15 +332,12 @@ int iface_count(struct iface_t *ifaces)
 }
 
 /**
- * Set the MAC address of a network interface from a buffer of ETH_ALEN
- * bytes, or from the set-mac member of a struct iface_t structure.
- * Brings the interface down and back up while doing so.
- *
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
- * @source: A pointer to at least ETH_ALEN bytes containing a MAC address.
- *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * @brief Set the MAC address of a network interface.
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @param source A pointer to @p ETH_ALEN bytes containing a MAC address.
+ * @return 0 if successful, or -1 if unsuccessful.
+ * @note Brings the interface down and back up, invalidating all sockets on it.
  */
 int iface_set_mac(struct iface_t *iface, u_char *source)
 {
@@ -376,13 +413,14 @@ int iface_set_mac(struct iface_t *iface, u_char *source)
 }
 
 /**
- * Convert a MAC address to a string (like ether_ntoa(3)).
- *
- * @mac: A pointer to a buffer containing ETH_ALEN bytes representing a MAC
- *       address.
- *
- * Returns a pointer to a static buffer containing the MAC address as a
- * C string in colon-delimited format.
+ * @brief Convert a MAC address to a string.
+ * @param mac A pointer to a buffer containing @p ETH_ALEN bytes representing a
+ *            MAC address.
+ * @return A C string in a static buffer containing the human-readable,
+ *         colon-delimited MAC address.
+ * @note Like @p ether_ntoa(3). Returns a static buffer whose contents change
+ *       with each call to this function.
+ * @see @p ether_ntoa(3).
  */
 char *iface_strmac(u_char *mac)
 {

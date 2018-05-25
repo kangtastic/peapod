@@ -1,18 +1,27 @@
-#include "includes.h"
+/**
+ * @file daemonize.c
+ * @brief Daemonize the program.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include "defaults.h"
+#include "log.h"
 
 static void check_pidfile(const char *pidfile);
 static char *getpwd(void);
 static pid_t write_pidfile(const char *pidfile, pid_t pid);
 
-extern struct args_t args;
 extern char **environ;
 
 /**
- * Exits if the process referenced by @pidfile is running.
- *
- * @pidfile: A pointer to a C string containing the path of a PID file.
- *
- * Returns nothing.
+ * @brief Exit if the process referenced by @p pidfile is running.
+ * @param pidfile A C string containing the path of a PID file.
  */
 static void check_pidfile(const char *pidfile)
 {
@@ -29,11 +38,12 @@ static void check_pidfile(const char *pidfile)
 }
 
 /**
- * Gets the current working directory (like get_current_dir_name()).
- * The caller must free() the result.
- *
- * Returns a pointer to a C string with the current working directory if
- * successful, or a null pointer if unsuccessful.
+ * @brief Get the current working directory.
+ * @return A C string containing an absolute path that is the current working
+ *         directory if successful, or @p NULL if unsuccessful.
+ * @note Like @p get_current_dir_name(3). If successful, the caller is
+ *       responsible for <tt>free(3)</tt>ing the result.
+ * @see @p get_current_dir_name(3).
  */
 static char *getpwd(void)
 {
@@ -41,7 +51,7 @@ static char *getpwd(void)
 	char *pathmax = malloc(PATH_MAX);
 
 	if (pathmax == NULL)
-		ecritdie("cannot allocate buffer of size PATH_MAX: %s");
+		ecritdie("cannot allocate %d (PATH_MAX) bytes: %s", PATH_MAX);
 
 	if (getcwd(pathmax, PATH_MAX) == NULL) {
 		err("cannot find value of environment variable PWD");
@@ -55,14 +65,17 @@ static char *getpwd(void)
 }
 
 /**
- * Writes a PID file. Attempts to do so atomically as per daemon(7).
- * Does not write PID file if the file referenced by @pidfile already exists,
- * and the process ID referenced by the file is in use by a running process.
+ * @brief Write a PID file.
  *
- * @pidfile: A pointer to a C string containing the path of a PID file.
- * @pid: A PID.
+ * Attempts to do so "atomically" as per @p daemon(7). Does not write PID file
+ * if the file referenced by @p pidfile already exists, or the process ID
+ * referenced by the file is in use by a running process.
  *
- * Returns the PID written to the PID file if successful.
+ * @param pidfile A C string containing the path of a PID file.
+ * @param pid A PID.
+ * @return The PID actually written to the PID file, which should be the same as
+ *         @p pid.
+ * @note Exits if unsuccessful.
  */
 static pid_t write_pidfile(const char *pidfile, pid_t pid)
 {
@@ -130,14 +143,15 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
 }
 
 /**
- * Daemonizes the program.
- * Attempts to do so in the manner described in daemon(7).
- * Forks twice, with the parent writing the PID of the second child to a PID
- * file before exiting. The daemon child also adds the PWD environment variable.
+ * @brief Daemonize the program.
  *
- * @pidfile: A pointer to a C-string containing the path of a PID file.
+ * Attempts to do so in the manner described in @p daemon(7) - forks twice, with
+ * the parent writing the PID of the second child to a PID file before exiting.
+ * The daemon child also adds the PWD environment variable, in case any scripts
+ * executed later require it.
  *
- * Returns nothing.
+ * @param pidfile A C string containing the path of a PID file.
+ * @note Exits if unsuccessful.
  */
 void daemonize(const char *pidfile)
 {
@@ -156,7 +170,6 @@ void daemonize(const char *pidfile)
 
 	pid_t pid;
 
-	/* first fork */
 	pid = fork();
 	if (pid == -1) {
 		ecritdie("cannot fork: %s");
@@ -175,7 +188,7 @@ void daemonize(const char *pidfile)
 		close(pipepc[1]);
 		close(pipecp[0]);
 
-		waitpid(-1, NULL, WNOHANG);	/* don't block waiting */
+		waitpid(pid, NULL, 0);
 		debug("parent exiting");
 		exit(EXIT_SUCCESS);
 	}
@@ -220,7 +233,7 @@ void daemonize(const char *pidfile)
 		ecritdie("chdir to root directory '%s' failed: %s",
 			 PEAPOD_ROOT_PATH);
 
-	/* For script execution; even then there's no real reason for this */
+	/* For script execution, but there's probably no real reason for this */
 	char *pwd = getpwd();
 	int rv = setenv("PWD", pwd, 1);
 	free(pwd);

@@ -1,8 +1,28 @@
-#include "includes.h"
+/**
+ * @file args.c
+ * @brief Parse command-line arguments, set up the global program arguments data
+ *        structure.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <libgen.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include "args.h"
+#include "defaults.h"
+#include "log.h"
 
 static void print_args(void);
 
-static char opts[] = ":hdp:c:tl::svno";
+/** @brief An optstring for @p getopt(3). */
+static char *opts = ":hdp:c:tl::svno";
+
+/**
+ * @brief An array of <tt>struct option</tt> structures for @p getopt_long(3).
+ */
 static struct option long_opts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "daemon", no_argument, NULL, 'd' },
@@ -18,13 +38,10 @@ static struct option long_opts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-struct args_t args;		/* global */
+/** @brief Global program arguments data structure. */
+struct args_t args;		
 
-/**
- * Print the global program arguments data structure.
- *
- * Returns nothing.
- */
+/** @brief Log the global program arguments data structure. */
 static void print_args(void) {
 	debuglow("\targs = {");
 	debuglow("\t\thelp=%u", args.help);
@@ -42,21 +59,21 @@ static void print_args(void) {
 }
 
 /**
- * Validate and canonicalize a path.
+ * @brief Validate and canonicalize a path.
  *
- * @path: A pointer to a C string containing a path.
- * @create: A flag to control whether this function attempts to create the
- *          nonexistent final directory component of a successfully validated
- *          and canonicalized path as the current user, mode 0644. Other missing
- *          directory components (parent directories) cause failure.
+ * May attempt to create the nonexistent final directory component of a
+ * successfully validated and canonicalized path as the current user, mode 0644.
+ * Other missing directory components (parent directories) cause failure. The
+ * reason for this behavior is to create subdirectories in @p /etc, @p /var/log
+ * and @p /var/run for the default locations of the program config file, log
+ * file, and PID file.
  *
- *          The reason for this behavior is to create subdirectories in /etc,
- *          /var/log and /var/run for the default locations of the program
- *          config file, log file, and PID file.
- *
- * If successful, the caller is responsible for free()ing the result.
- *
- * Returns a pointer to a C string if successful, or NULL if unsuccessful.
+ * @param path A C string containing a path.
+ * @param create A flag to control creating the final directory component.
+ * @return A C string if successful, or @p NULL if unsuccessful.
+ * @note If successful, the caller is responsible for <tt>free(3)</tt>ing the
+ *       result.
+ * @see @p defaults.h.
  */
 char *args_canonpath(const char *path, int create)
 {
@@ -104,13 +121,11 @@ char *args_canonpath(const char *path, int create)
 }
 
 /**
- * Parse command-line arguments and sets the corresponding
- * fields in the global struct args_t args above.
- *
- * @argc: The number of command-line arguments.
- * @argv: A vector of command-line arguments.
- *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * @brief Parse command-line arguments and set up the global program arguments
+ *        data structure.
+ * @param argc The number of command-line arguments.
+ * @param argv A vector of command-line arguments.
+ * @return 0 if successful, or -1 if unsuccessful.
  */
 int args_get(int argc, char* argv[]) {
 	memset(&args, 0, sizeof(struct args_t));
@@ -141,7 +156,7 @@ int args_get(int argc, char* argv[]) {
 			break;
 		case 'l':
 			/* Normally a GNU getopt optional argument requires
-			 * "-l<logfile>" or "--log=<logfile>"; also allow
+			 * "-l<logfile>" or "--log=<logfile>". Also allow
 			 * "-l <logfile>" and "--log <logfile>".
 			 */
 			if (optarg == NULL && optind < argc &&

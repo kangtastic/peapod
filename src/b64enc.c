@@ -1,5 +1,17 @@
-#include "includes.h"
+/**
+ * @file b64enc.c
+ * @brief Base64 encoder.
+ */
 
+#include "b64enc.h"
+
+/**
+ * @brief The length of the resulting Base64-encoded string, including the null
+ *        terminator, from an input of length @p len.
+ */
+#define b64len(len) (4 * ((len) / 3) + 5)
+
+/** @brief Base64 index table. */
 static const char b64[64] = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -12,14 +24,17 @@ static const char b64[64] = {
 };
 
 /**
- * Allocates a buffer and Base64-encodes the first @len bytes of the buffer to
- * which @in points. The caller must free() the result.
+ * @brief Base64 encoder.
  *
- * @in: A pointer to a buffer of length @len.
- * @len: The length of the buffer to which @in points.
+ * Allocates a buffer large enough to contain the encoded data, including the
+ * null terminator.
  *
- * Returns a pointer to a C string with the Base64-encoded contents of @in if
- * successful, or a null pointer if unsuccessful.
+ * @param in Data to be Base64-encoded.
+ * @param len The length of @p in.
+ * @return A C string with the Base64-encoded contents of @p in if successful,
+ *         or @p NULL if unsuccessful.
+ * @note If successful, the caller is responsible for <tt>free(3)</tt>ing the
+ *       result.
  */
 char *b64enc(const uint8_t *in, size_t len)
 {

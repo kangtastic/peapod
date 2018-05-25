@@ -1,6 +1,29 @@
+/**
+ * @file parser.y
+ * @brief Parser for config file.
+ *
+ * Turns a config file into a list of <tt>struct iface_t</tt> structures, so
+ * that the program knows which network interfaces it should use and what it
+ * should do for each interface.
+ */
 %define parse.error verbose
 %{
-#include "includes.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <regex.h>
+#include <string.h>
+#include <unistd.h>
+#include "args.h"
+#include "iface.h"
+#include "log.h"
+#include "packet.h"
+//#include "parser.h"
+
+#define u8tob_fmt	"%c%c%c%c%c%c%c%c"
+#define u8tob(u8)	(u8 & 0x80 ? '1' : '0'), (u8 & 0x40 ? '1' : '0'), \
+			(u8 & 0x20 ? '1' : '0'), (u8 & 0x10 ? '1' : '0'), \
+			(u8 & 0x08 ? '1' : '0'), (u8 & 0x04 ? '1' : '0'), \
+			(u8 & 0x02 ? '1' : '0'), (u8 & 0x01 ? '1' : '0')
 
 /* begin: magic flex lines, for to make not angry compiler */
 #define YY_DECL
@@ -35,7 +58,7 @@ static struct tci_t *tci = NULL;
 static struct filter_t *filter = NULL;
 static struct action_t *action = NULL;
 
-extern int linenum;			/* lexer.l: line number in conffile */
+extern int linenum;		/* lexer.l: line number in config file */
 
 struct iface_t *parse_config(const char *path)
 {
@@ -500,8 +523,8 @@ filtertypes	: filtertypes ',' filtertype
 
 filtertype	: T_ALL
 		{
-			for (int i = EAPOL_EAP_PACKET;		/* 0 */
-			     i <= EAPOL_ENCAP_ASF_ALERT;	/* 4 */
+			for (int i = EAPOL_EAP_PACKET;		// 0
+			     i <= EAPOL_ENCAP_ASF_ALERT;	// 4
 			     i++)
 				filter->frame |= 1 << i;
 		}

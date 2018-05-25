@@ -1,4 +1,16 @@
-#include "includes.h"
+/**
+ * @file proxy.c
+ * @brief Main event loop, related operations.
+ */
+#include <signal.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/epoll.h>
+#include "args.h"
+#include "log.h"
+#include "packet.h"
+#include "process.h"
 
 static void check_signals(void);
 static int create_epoll(void);
@@ -11,11 +23,7 @@ extern volatile sig_atomic_t sig_term;
 
 extern struct args_t args;
 
-/**
- * Check and set signal counters.
- *
- * Returns nothing.
- */
+/** @brief Check and set signal counters. */
 static void check_signals(void) {
 	if (sig_hup > 0) {
 		notice("received SIGHUP");
@@ -38,9 +46,8 @@ static void check_signals(void) {
 }
 
 /**
- * Create an epoll instance.
- *
- * Returns nothing.
+ * @brief Create an @p epoll instance.
+ * @return 0 if successful, -1 if unsuccessful.
  */
 static int create_epoll(void)
 {
@@ -52,12 +59,12 @@ static int create_epoll(void)
 }
 
 /**
- * Print an error on receiving a spurious epoll event.
+ * @brief Log an error on receiving a spurious @p epoll event.
  *
- * @name: A C string containing the name of a network interface.
- * @events: The events member of a struct epoll_event.
+ * @param name A C string containing the name of a network interface.
+ * @param events The events member of a <tt>struct epoll_event</tt>.
  *
- * Returns nothing.
+ * @see @p epoll(4).
  */
 static void spurious_event(char *name, uint32_t events)
 {
@@ -80,11 +87,35 @@ static void spurious_event(char *name, uint32_t events)
 }
 
 /**
- * Program main loop.
+ * @brief Main event loop.
  *
- * @ifaces: A list of struct iface_t structures representing network interfaces.
+ * Broadly, the loop flow is something like the following:
+ * -# Receive an EAPOL frame on an interface. (Let's call the frame @p frame,
+ *    the interface @p iface, and this part of the flow the "ingress" phase.)
+ * -# If @p frame is the first frame received on @p iface:
+ *	- Check if another interface is configured to have its MAC address set
+ *	  from such a frame.
+ *	- If so, set the other interface's MAC address to the source MAC address
+ *	  contained in @p frame, drop @p frame entirely, and restart the loop.
+ * -# Execute ingress script, if configured on @p iface.
+ * -# Apply ingress filter, if configured on @p iface.
+ *	- Filtering here means dropping @p frame entirely and restarting the
+ *	  loop.
+ * -# Proxy @frame to other interfaces. (Let's call this part of the flow the
+ *   "egress" phase, and the other interfaces "egress interfaces".) Do the
+ *   following for each:
+ *	- Make a local copy of @p frame.
+ *	- Add/change/remove 802.1Q tag in the copy.
+ *	- Apply egress filter, if configured on the current egress interface.
+ *		- Filtering here means only that the copy won't be sent out
+ *		  on/the remaining steps are skipped for the current egress
+ *		  interface; other egress interfaces are unaffected.
+ *	- Execute egress script, if configured on the current egress interface.
+ *	- Send the copy.
+ * -# Restart the loop.
  *
- * Returns nothing.
+ * @param ifaces A pointer to a list of <tt>struct iface_t</tt> structures
+ *               representing network interfaces.
  */
 void proxy(struct iface_t *ifaces)
 {

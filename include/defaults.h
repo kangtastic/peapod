@@ -1,3 +1,7 @@
+/**
+ * @file defaults.h
+ * @brief Program name and path constants.
+ */
 #pragma once
 
 #define PEAPOD_PROGRAM		"peapod"

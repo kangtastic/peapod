@@ -1,13 +1,54 @@
-#include "includes.h"
+/**
+ * @file peapod.c
+ * @brief Proxy EAP Daemon
+ *
+ * @mainpage peapod - Proxy EAP Daemon
+ *
+ * @section introsec Introduction
+ *
+ * Hello.
+ *
+ * @section installsec Installation
+ *
+ * Hello again.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <paths.h>
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
+#include "args.h"
+#include "daemonize.h"
+#include "defaults.h"
+#include "log.h"
+#include "parser.h"
+#include "proxy.h"
 
-const char usage[] = {
+static void help_exit(int status);
+static void signal_handler(int sig);
+int main(int argc, char *argv[]);
+
+/** 
+ * @name Signal counters
+ * @{
+ */
+volatile sig_atomic_t sig_hup = 0;
+volatile sig_atomic_t sig_int = 0;
+volatile sig_atomic_t sig_usr1 = 0;
+volatile sig_atomic_t sig_term = 0;
+/** @} */
+
+/** @brief Program usage string. */
+static const char usage[] = {
 "\n"
 "%s - Proxy EAP Daemon\n"
 "\n"
 "Usage: %s [-dtsnh] [-vvv] [-p <pid file>] [-c <config file>]\n"
 "                              [-l [<log file>]]\n"
 "\n"
-"Mandatory arguments for long options are mandatory for short options too.\n"
+"Mandatory arguments are mandatory for both forms of an option.\n"
 "\n"
 "  -d, --daemon         run as daemon (disables console output, sets --syslog)\n"
 "  -p, --pid=PATH       set PID file (default: %s)\n"
@@ -38,28 +79,17 @@ const char usage[] = {
 "Version: %s\n"
 };
 
-static void help_exit(int status);
-static void signal_handler(int sig);
-int main(int argc, char *argv[]);
-
-volatile sig_atomic_t sig_hup = 0;
-volatile sig_atomic_t sig_int = 0;
-volatile sig_atomic_t sig_usr1 = 0;
-volatile sig_atomic_t sig_term = 0;
-
+/** @brief An environment containing only @p PATH. */
 static char *clean_environ[] = { "PATH=" _PATH_STDPATH,	NULL };
 
-struct iface_t *ifaces;
-
-extern char **environ;
+extern char **environ;			/**< @brief Environment variables. */
 extern struct args_t args;
 
+struct iface_t *ifaces;			/**< @brief Global interface list. */
+
 /**
- * Print usage information to stderr and exit.
- *
- * @status: The exit status to pass to the exit() system call.
- *
- * Returns nothing.
+ * @brief Print usage information to @p stderr and exit.
+ * @param status The exit status to pass to the @p exit(2) system call.
  */
 static void help_exit(int status)
 {
@@ -69,12 +99,12 @@ static void help_exit(int status)
 }
 
 /**
- * Increment signal counters upon receiving a signal. If more than one SIGINT
- * or SIGTERM has been received without being acted upon, abort the program.
+ * @brief Signal handler.
+ * 
+ * Increment signal counters upon receiving a signal. If more than one @p SIGINT
+ * or @p SIGTERM has been received without being acted upon, abort the program.
  *
- * @sig: The signal number of the program's received signal.
- *
- * Returns nothing.
+ * @param sig The signal that was received.
  */
 static void signal_handler(int sig)
 {
@@ -99,9 +129,9 @@ static void signal_handler(int sig)
 }
 
 /**
- * Close all open file descriptors except stdin, stdout, and stderr.
- *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * @brief Close all open file descriptors except @p stdin, @p stdout, and
+ *        @p stderr.
+ * @return 0 if successful, or -1 if unsuccessful.
  */
 int peapod_close_fds(void)
 {
@@ -115,9 +145,8 @@ int peapod_close_fds(void)
 }
 
 /**
- * Redirect stdin, stdout, and stderr to /dev/null.
- *
- * Returns 0 if successful, or -1 if unsuccessful.
+ * @brief Redirect @p stdin, @p stdout, and @p stderr to @p /dev/null.
+ * @return 0 if successful, or -1 if unsuccessful.
  */
 int peapod_redir_stdfds(void)
 {
@@ -157,6 +186,12 @@ int peapod_redir_stdfds(void)
 	return 0;
 }
 
+/**
+ * @brief Main function.
+ * @param argc The number of command-line arguments.
+ * @param argv A vector of command-line arguments.
+ * @return 0 by default.
+ */
 int main(int argc, char *argv[])
 {
 
@@ -205,7 +240,7 @@ int main(int argc, char *argv[])
 
 	info("running as user %d", (int)uid);
 
-	/* We'll probably die, but perhaps we have privileges */
+	/* We'll probably faceplant soon, but perhaps we have privileges */
 	if (uid != 0)
 		warning("not running as root");
 

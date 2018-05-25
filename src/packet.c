@@ -1,18 +1,73 @@
-#include "includes.h"
+/**
+ * @file packet.c
+ * @brief EAPOL frame/packet operations
+ */
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <linux/if_packet.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+#include "args.h"
+#include "log.h"
+#include "packet.h"
+#include "process.h"
 
 static void dump(struct peapod_packet pkt);
 static void decode(struct peapod_packet pkt);
 
-static uint8_t *pkt_buf = NULL;	/* Will allocate 16 bytes in front as scratch */
-uint8_t *pdu_buf = NULL;	/* global, EtherType + MTU (normal size 1502) */
-static int pkt_buf_size = 0;	/* normal size 1518 */
-int pdu_buf_size = 0;		/* global */
+/**
+ * @name Main buffer for an EAPOL frame
+ *
+ * The size of this buffer is normally 1518 bytes given a 1500-byte MTU, to
+ * accommodate the standard 1514-byte Ethernet frame size plus a 4-byte 802.1Q
+ * tag. We use an @p iovec with @p recvmsg(2) to split off the destination and
+ * source MAC addresses into their own fields of a <tt>struct peapod_packet</tt>
+ * structure at the point of capture, reading only the EAPOL PDU (EtherType and
+ * MTU, normally 1502 bytes) into bytes 16:, and obtaining any 802.1Q tag via
+ * a @p PACKET_AUXDATA cmsg from the kernel. Bytes 0:15 may then serve as
+ * scratch space for us to reconstruct the complete EAPOL frame.
+ *
+ * This allows us to do things like adding, modifying, or removing an 802.1Q tag
+ * for a proxied frame on a per-egress-interface basis. We simply
+ * reconstruct/modify the first 16 bytes of this buffer as needed, then call
+ * @p write(2) on the socket file descriptor with the proper memory offset.
+ * @{
+ */
 
+/** @brief Beginning of the main EAPOL frame buffer. */
+static uint8_t *pkt_buf = NULL;
+
+/**
+ * @brief The EAPOL PDU. Global.
+ *
+ * Points to byte 16 of the main EAPOL frame buffer, and thereby to the EAPOL
+ * EtherType (0x888e) followed by the (normally 1500-byte) MTU.
+ */
+uint8_t *pdu_buf = NULL;
+
+/** @brief Normally 1518 bytes. */
+static int pkt_buf_size = 0;
+/** @brief Normally 1502 bytes. Global. */
+int pdu_buf_size = 0;
+/** @} */
+
+/**
+ * @brief A buffer for receiving a <tt>struct packet_auxdata_t</tt>
+ *        (actually a <tt>struct tpacket_auxdata</tt>) from the kernel via
+ *        @p recvmsg(2).
+ * @see @p socket(7), "Socket options".
+ */
 static union {
 	struct cmsghdr cmsg;
 	uint8_t buf[CMSG_SPACE(sizeof(struct packet_auxdata_t))];
 } cmsg_buf;
 
+/** 
+ * @brief A <tt>struct msghdr</tt> for @p recvmsg(2).
+ * @see @p recvmsg(2).
+ */
 static struct msghdr msg = {
 	.msg_name = NULL,
 	.msg_namelen = 0,
@@ -24,11 +79,9 @@ static struct msghdr msg = {
 extern struct args_t args;
 
 /**
- * Print a hexadecimal dump of a struct peapod_packet.
- *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- *
- * Returns nothing.
+ * @brief Log a hexadecimal dump of a <tt>struct peapod_packet</tt>.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an
+ *               EAPOL frame.
  */
 static void dump(struct peapod_packet packet)
 {
@@ -62,11 +115,10 @@ static void dump(struct peapod_packet packet)
 }
 
 /**
- * Print metadata for a struct peapod_packet in a tcpdump-like format.
- *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- *
- * Returns nothing.
+ * @brief Log metadata for a <tt>struct peapod_packet</tt> in a
+ *        <tt>tcpdump</tt>-like format.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an
+ *               EAPOL frame.
  */
 static void decode(struct peapod_packet packet)
 {
@@ -129,13 +181,13 @@ static void decode(struct peapod_packet packet)
 }
 
 /**
- * Allocate the main packet buffer according to the highest MTU of the network
- * interfaces which the program is using.
+ * @brief Allocate the main buffer for the EAPOL frame.
+ * 
+ * The size of the buffer is determined according to the highest MTU of the
+ * network interfaces used by the program.
  *
- * @ifaces: A pointer to a list of struct iface_t structures representing
- *          network interfaces.
- *
- * Returns nothing.
+ * @param ifaces A pointer to a list of <tt>struct iface_t</tt> structures
+ *               representing network interfaces.
  */
 void packet_init(struct iface_t *ifaces)
 {
@@ -164,27 +216,25 @@ void packet_init(struct iface_t *ifaces)
 }
 
 /**
- * Return a pointer to a raw EAPOL frame.
- * Rewrites the first 16 bytes of the main packet buffer. The returned frame
- * may have a VLAN tag at the appropriate position, according to metadata
- * contained in @packet and the value of @orig.
+ * @brief Return a pointer to a raw EAPOL frame.
  *
- * The contents of the buffer, to the beginning of which the result points, will
- * be either a) the frame, including the VLAN tag, as it appeared when it was
- * captured on the ingress interface, or b) the processed frame, possibly with
- * original VLAN tag removed or tag fields changed according to interface egress
- * suboptions, that should be sent out on a given egress interface.
+ * Rewrites the first 16 bytes of the main packet buffer. The result shall point
+ * to the beginning of a raw EAPOL frame that is either:
+ * -# the original frame, including the VLAN tag, as it appeared when it was
+ *    captured on the ingress interface, or
+ * -# the processed frame, possibly with original VLAN tag removed or tag fields
+ *    changed according to interface egress suboptions, that should be sent out
+ *    on a given egress interface.
  *
- * After calling this function, it is safe for the caller to read, starting from
- * the result, packet.len or packet.len_orig bytes.
+ * The result may then be used by the caller to (hex)dump, Base64-encode, and/or
+ * send the frame.
  *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- * @orig: A flag that determines whether the result points to the original frame
- *        as seen on the ingress interface, or to the "cooked" frame that should
- *        be sent on an egress interface.
- *
- * Returns a pointer to the beginning of a raw EAPOL frame, somewhere within the
- * boundaries of the main packet buffer.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an
+ *               EAPOL frame.
+ * @param orig A flag that determines whether the result points to the original
+ *             frame as seen on the ingress interface, or to a processed frame
+ *             that should be sent on an egress interface.
+ * @return A pointer to the beginning of a complete EAPOL frame.
  */
 uint8_t *packet_buf(struct peapod_packet packet, uint8_t orig) {
 	uint8_t vlan_valid;
@@ -215,12 +265,10 @@ uint8_t *packet_buf(struct peapod_packet packet, uint8_t orig) {
 }
 
 /**
- * Convert a struct tci_t whose members contain the values of the three
- * fields in an 802.1Q tag to an unsigned 32-bit integer in network order.
- *
- * @tci: A struct tci_t structure representing the fields of an 802.1Q tag.
- *
- * Returns an unsigned 32-bit integer in network order.
+ * @brief Convert a <tt>struct tci_t</tt> to a 4-byte 802.1Q tag.
+ * @param tci A <tt>struct tci_t</tt> structure representing the fields of an
+ *            802.1Q tag.
+ * @return An unsigned 32-bit integer in network order.
  */
 uint32_t packet_tcitonl(struct tci_t tci)
 {
@@ -231,15 +279,20 @@ uint32_t packet_tcitonl(struct tci_t tci)
 }
 
 /**
- * Retrieve the description of the Type field of an EAPOL frame, the Code field
- * of an EAP-Packet Code, or the Type field of an EAP-Request/-Response Packet.
+ * @brief Decode a byte in an EAPOL frame to a C string.
  *
- * @val: The value of the relevant field to decode.
- * @decode: A pointer to a struct decode_t structure matching field values with
- *          descriptions.
+ * The byte may be one of the following:
+ * -# the Type field of an EAPOL frame,
+ * -# if the EAPOL frame encapsulates an EAP-Packet, the Code field of the
+ *    EAP-Packet, or
+ * -# if the EAP-Packet encapsulates an EAP-Request or EAP-Response, the Type
+ *    field of the EAP-Request or EAP-Response.
  *
- * Returns a C string containing a description, or "Unknown" if the value
- * does not have a corresponding description in @decode.
+ * @param val The value of the relevant byte to decode.
+ * @param decode A pointer to a <tt>struct decode_t</tt> structure matching
+ *               field values with descriptions.
+ * @return A C string containing a description, or "Unknown" if the value does
+ *         not have a corresponding description in @p decode.
  */
 char* packet_decode(uint8_t val, const struct decode_t *decode)
 {
@@ -255,16 +308,16 @@ char* packet_decode(uint8_t val, const struct decode_t *decode)
 }
 
 /**
- * Send an EAPOL frame on a network interface.
- * Also executes an egress script if one is defined in @iface for the Type of
- * the EAPOL frame, or if the frame Type was EAP-Packet (0), the Code of the
- * encapsulated EAP-Packet.
+ * @brief Send an EAPOL frame on a network interface.
  *
- * @packet: A struct peapod_packet structure representing an EAPOL frame.
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
+ * Also executes an egress script if @p iface->egress->action is a
+ * <tt>struct action_t</tt> structure.
  *
- * Returns the number of bytes successfully sent.
+ * @param packet A <tt>struct peapod_packet</tt> structure representing an
+ *               EAPOL frame.
+ * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
+ *              network interface.
+ * @return The number of bytes successfully sent.
  */
 int packet_send(struct peapod_packet packet, struct iface_t *iface)
 {
@@ -352,21 +405,21 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 }
 
 /**
- * Receive an EAPOL frame on a network interface.
+ * @brief Receive an EAPOL frame on a network interface.
  *
- * @iface: A pointer to a struct iface_t structure representing a network
- *         interface.
- *
- * Returns a struct peapod_packet structure representing an EAPOL frame, in
- * which at least the len and len_orig members are set. These may be set to the
- * number of bytes successfully received (at least 60), to -1 if an error
- * occurred, to -2 if fewer than 60 bytes were received (which would mean that
- * the frame, including the 4-byte FCS, was smaller than the minimum Ethernet
- * frame size of 64 bytes), or to -3 if the frame was too big to fit in the main
- * packet buffer.
- *
- * If the len and len_orig members of the result were set to at least 60,
+ * If the @p len and @p len_orig members of the result were set to at least 60,
  * several of the other members contain frame, packet, and EAP metadata.
+ *
+ * @return A <tt>struct peapod_packet</tt> structure representing an EAPOL
+ *         frame, in which at least the @p len and @p len_orig members are set
+ *         to the same value. That value shall be one of the following:
+ *         -# the number of bytes successfully received (at least 60),
+ *         -# -1 if an error occurred,
+ *         -# -2 if fewer than 60 bytes were received (which would mean that the
+ *            frame, including the 4-byte FCS, was smaller than the minimum
+ *            Ethernet frame size of 64 bytes), or
+ *         -# -3 if the frame was too big to fit in the main buffer for the
+ *            EAPOL frame (which would mean that the MTU was ignored).
  */
 struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	struct peapod_packet ret;

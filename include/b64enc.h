@@ -1,8 +1,10 @@
+/**
+ * @file b64enc.h
+ * @brief Function prototypes for @p b64enc.c
+ */
 #pragma once
 
-/* Length of the resulting Base64-encoded string, including
- * the null terminator, from an input of length len.
- */
-#define b64len(len) (4 * ((len) / 3) + 5)
+#include <stdint.h>
+#include <stdlib.h>
 
 char *b64enc(const uint8_t *in, size_t len);

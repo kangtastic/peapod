@@ -1,3 +1,7 @@
+/**
+ * @file lexer.l
+ * @brief Lexer for config file parser.
+ */
 %option nounput noinput noyywrap
 
 %{
