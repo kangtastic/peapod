@@ -96,6 +96,8 @@ struct iface_t {
 	int index;			/**< @brief Interface index. */
 	int mtu;			/**< @brief Maximum Transmission Unit. */
 	int skt;			/**< @brief Raw socket bound to the interface. */
+	int recv_ctr;			/**< @brief Number of EAPOL frames received. */
+	int send_ctr;			/**< @brief Number of EAPOL frames sent. */
 	struct ingress_t *ingress;	/**< @brief Ingress options. */
 	struct egress_t *egress;	/**< @brief Egress options. */
 	uint8_t promisc;		/**< @brief Flag: Set promiscuous mode on @p skt. */

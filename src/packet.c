@@ -401,6 +401,8 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 	decode(packet);
 	dump(packet);
 
+	++iface->send_ctr;
+
 	return 0;
 }
 

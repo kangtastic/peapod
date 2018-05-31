@@ -185,10 +185,14 @@ void proxy(struct iface_t *ifaces)
 			continue;
 		}
 
+		++iface->recv_ctr;
+
 		/* Set MAC of another interface to source address of first
 		 * frame entering on current interface.
 		 */
-		for (struct iface_t *i = ifaces; i != NULL; i = i->next) {
+		for (struct iface_t *i = ifaces;
+		     i != NULL && iface->recv_ctr == 1;
+		     i = i->next) {
 			if (i == iface || i->ingress == NULL ||
 			    i->ingress->set_mac[0] == '\0' ||
 			    (strcmp(i->ingress->set_mac, iface->name) != 0))
