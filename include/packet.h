@@ -100,7 +100,7 @@ struct eap_packet {
 	__u8 id;			/**< @brief Identifier */
 	__be16 len;			/**< @brief Length */
 	__u8 type;			/**< @brief Type (if Request or Response) */
-	__u8 type_data[];		/**< @brief Packet (variable length, not used) */
+	//__u8 type_data[];		/**< @brief Packet (variable length, not used) */
 }__attribute__((packed));
 
 /**
@@ -114,7 +114,7 @@ struct eapol_key {
 	__u8 key_iv[16];		/**< @brief Key initialization vector */
 	__u8 key_index;			/**< @brief Key index */
 	__u8 key_sig[16];		/**< @brief Key signature */
-	__u8 key[];			/**< @brief Key (variable length, not used) */
+	//__u8 key[];			/**< @brief Key (variable length, not used) */
 }__attribute__((packed));
 
 /**
