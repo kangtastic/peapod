@@ -73,7 +73,7 @@ static void print_args(void) {
  * @return A C string if successful, or @p NULL if unsuccessful.
  * @note If successful, the caller is responsible for <tt>free(3)</tt>ing the
  *       result.
- * @see @p defaults.h.
+ * @see @p defaults.h
  */
 char *args_canonpath(const char *path, int create)
 {

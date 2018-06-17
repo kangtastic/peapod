@@ -43,7 +43,7 @@ static void check_pidfile(const char *pidfile)
  *         directory if successful, or @p NULL if unsuccessful.
  * @note Like @p get_current_dir_name(3). If successful, the caller is
  *       responsible for <tt>free(3)</tt>ing the result.
- * @see @p get_current_dir_name(3).
+ * @see @p get_current_dir_name(3)
  */
 static char *getpwd(void)
 {

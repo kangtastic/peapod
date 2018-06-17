@@ -65,7 +65,7 @@ static const char usage[] = {
 "                       -v:   additionally output informational messages\n"
 "                       -vv:  also output debug messages\n"
 "                       -vvv: also output low-level debug messages such as data\n"
-"                             structure views and EAPOL frame hexdumps to the\n"
+"                             structure views and EAPOL packet hexdumps to the\n"
 "                             console and/or a log file (but not to syslog)\n"
 "\n"
 "  -q, --quiet-script   only output script execution notices with at least one -v\n"

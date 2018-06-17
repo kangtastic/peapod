@@ -64,7 +64,7 @@ static int create_epoll(void)
  * @param name A C string containing the name of a network interface.
  * @param events The events member of a <tt>struct epoll_event</tt>.
  *
- * @see @p epoll(4).
+ * @see @p epoll(4)
  */
 static void spurious_event(char *name, uint32_t events)
 {
@@ -89,29 +89,33 @@ static void spurious_event(char *name, uint32_t events)
 /**
  * @brief Main event loop.
  *
- * Broadly, the loop flow is something like the following:
- * -# Receive an EAPOL frame on an interface. (Let's call the frame @p frame,
- *    the interface @p iface, and this part of the flow the "ingress" phase.)
- * -# If @p frame is the first frame received on @p iface:
- *	- Check if another interface is configured to have its MAC address set
- *	  from such a frame.
- *	- If so, set the other interface's MAC address to the source MAC address
- *	  contained in @p frame, drop @p frame entirely, and restart the loop.
- * -# Execute ingress script, if configured on @p iface.
- * -# Apply ingress filter, if configured on @p iface.
- *	- Filtering here means dropping @p frame entirely and restarting the
- *	  loop.
- * -# Proxy @frame to other interfaces. (Let's call this part of the flow the
- *   "egress" phase, and the other interfaces "egress interfaces".) Do the
- *   following for each:
- *	- Make a local copy of @p frame.
- *	- Add/change/remove 802.1Q tag in the copy.
- *	- Apply egress filter, if configured on the current egress interface.
- *		- Filtering here means only that the copy won't be sent out
- *		  on/the remaining steps are skipped for the current egress
- *		  interface; other egress interfaces are unaffected.
- *	- Execute egress script, if configured on the current egress interface.
- *	- Send the copy.
+ * The loop flow approximates the following:
+ * -# Ingress phase: Receive an EAPOL packet (@p packet) on a configured
+ *    interface (@p iface). <br />
+ *    @p packet is an Ethernet frame containing an EAPOL MPDU and @p iface is a
+ *    network interface configured in the config file.
+ *     - If @p packet is the first EAPOL packet to be received on @p iface, and
+ *       any @e other interfaces are configured to have their MAC address set
+ *       from the source MAC address of such a packet:
+ *         - Set each such interface's MAC address.
+ *         - Drop @p packet entirely and restart the loop.
+ *     - If @p iface has an ingress script defined matching the EAPOL Packet
+ *       Type or EAP Code of @p packet, execute the ingress script.
+ *     - If @p iface has an ingress filter defined matching @p packet, apply
+ *       the ingress filter (i.e. drop @p packet entirely and restart the loop).
+ * -# Egress phase: Proxy @packet to other configured interfaces ("egress
+ *    interfaces"). <br />
+ *    For each egress interface (@p eiface):
+ *     - Make a local copy of @p packet (@p epacket).
+ *     - If @p eiface has a dot1q option defined, add/change/remove the 802.1Q
+ *       VLAN tag in @p epacket.
+ *     - If @p eiface has an egress filter defined matching @p epacket, apply
+ *       the egress filter. <br />
+ *       This means dropping @p epacket entirely on @p eiface and moving on to
+ *       proxying @p packet on the next egress interface.
+ *     - If @p eiface has an egress script defined matching @p epacket, execute
+ *       the egress script.
+ *     - Send @p epacket on @p eiface.
  * -# Restart the loop.
  *
  * @param ifaces A pointer to a list of <tt>struct iface_t</tt> structures
@@ -188,7 +192,7 @@ void proxy(struct iface_t *ifaces)
 		++iface->recv_ctr;
 
 		/* Set MAC of another interface to source address of first
-		 * frame entering on current interface.
+		 * Ethernet frame with EAPOL MPDU entering on current interface.
 		 */
 		for (struct iface_t *i = ifaces;
 		     i != NULL && iface->recv_ctr == 1;
@@ -219,19 +223,16 @@ void proxy(struct iface_t *ifaces)
 		if (process_filter(pkt, iface, PROCESS_INGRESS) == 1)
 			continue;
 
-
 		for (struct iface_t *i = ifaces; i != NULL; i = i->next) {
-			if (i == iface || process_filter(pkt, i,
-							 PROCESS_EGRESS) == 1)
+			if (i == iface)
 				continue;
 
-			/* Running a script on egress is in packet_send(); this
-			 * is because some fields in the peapod_packet and the
-			 * first 16 bytes of the packet buffer are modified by
-			 * it, so that what gets sent can have different 802.1Q
-			 * tags between interfaces.
-			 */
+			if (process_filter(pkt, i, PROCESS_EGRESS) == 1)
+				continue;		/* "approximates" ;) */
 
+			/* Hand off 802.1Q tag editing and egress script
+			 * execution to packet_send().
+			 */
 			if (packet_send(pkt, i) == -1)
 				goto proxy_error;
 		}

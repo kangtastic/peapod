@@ -18,12 +18,10 @@
 static void log_to_file(int level, FILE* out, const char *msg);
 
 /**
- * @name Log level descriptions.
- *
- * @p levels[] is 5 on-screen characters, normally used when emitting logs to
- * syslog or a log file. @p clevels[] is similar but colorized, so we use it
- * for emitting logs to the console.
- *
+ * @name Log level descriptions
+ * @p levels[] is 5 on-screen characters, normally used for emitting logs to
+ * syslog or a log file. <br />
+ * @p clevels[] is similar but colorized, used for emitting logs to the console.
  * @{
  */
 static const char *levels[] = {
@@ -40,7 +38,7 @@ static const char *clevels[] = {
 	"\x1b[1;95mWARN\x1b[0m ",	/* bold, light magenta */
 	"\x1b[1;94mNOTE\x1b[0m ",	/* bold, light blue */
 	"\x1b[1;92mINFO\x1b[0m ",	/* bold, light green */
-	"DEBUG",			/* default */
+	"DEBUG",			/* default (not colorized) */
 	"DBGLO"
 };
 /** @} */
@@ -55,8 +53,8 @@ extern struct args_t args;
  * additionally datestamped if logging to a file.
  *
  * @param level The level of the message, which may be the @p syslog levels from
- *              @p LOG_EMERG(0) to @p LOG_DEBUG(7), or our own
- *              @p LOG_DEBUGLOW(8).
+ *              @p LOG_EMERG to @p LOG_DEBUG (0 to 7), or our own
+ *              @p LOG_DEBUGLOW (8).
  * @param out A file stream, or @p NULL to emit to the console - @p stdout if
  *            @p level is below @p LOG_WARNING, or @p stderr otherwise.
  * @param msg A C string containing a message to be logged.
@@ -83,7 +81,10 @@ static void log_to_file(int level, FILE* out, const char *msg)
 	fflush(out);
 }
 
-/** @brief Initialize logging operations. */
+/**
+ * @brief Initialize logging.
+ * @return 0 if successful, or -1 if unsuccessful.
+ */
 int log_init(void)
 {
 	log_fs = NULL;
@@ -107,7 +108,10 @@ int log_init(void)
 	return 0;
 }
 
-/** @brief Prepare logging when daemonizing. */
+/**
+ * @brief Prepare logging when daemonizing.
+ * @return 0 if successful, or -1 if unsuccessful.
+ */
 int log_daemonize(void)
 {
 	if (peapod_close_fds() == -1)
@@ -136,8 +140,8 @@ int log_daemonize(void)
  * @p syslog, depending on the program arguments and the value of @p level.
  *
  * @param level The level of the message, which may be the @p syslog levels from
- *              @p LOG_EMERG(0) to @p LOG_DEBUG(7), or our own
- *              @p LOG_DEBUGLOW(8).
+ *              @p LOG_EMERG to @p LOG_DEBUG (0 to 7), or our own
+ *              @p LOG_DEBUGLOW (8).
  * @param file The @p \__FILE__ macro, i.e. the source file of the call to
  *             @p log_msg().
  * @param line The @p \__LINE__ macro, i.e. the line in the source file of the

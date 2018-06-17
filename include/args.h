@@ -8,7 +8,7 @@
 
 /**
  * @brief The global program arguments data structure.
- * @see @p defaults.h.
+ * @see @p defaults.h
  */
 struct args_t {
 	uint8_t help;		/**< @brief Flag: @p -h was provided. */
@@ -31,10 +31,10 @@ struct args_t {
 	/**
 	 * @brief Logging level.
 	 *
-	 * Defaults to @p LOG_NOTICE(5). Providing @p -v increments this up to
-	 * @p LOG_DEBUGPKT(8).
+	 * Defaults to @p LOG_NOTICE (5). Providing @p -v increments this up to
+	 * @p LOG_DEBUGPKT (8).
 	 *
-	 * @see log.h.
+	 * @see log.h
 	 */
 	uint8_t level;
 	/**

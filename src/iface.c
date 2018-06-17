@@ -21,15 +21,17 @@ static int sockopt(struct iface_t *iface);
 static inline void set_ifreq(char *name);
 
 /**
- * @brief Multicast Port Access Entity (802.1X/EAPOL) Group MAC Address.
- * @see IEEE Std 802.1X-2001 §7.8.
+ * @brief EAPOL Multicast Group MAC Addresses.
+ * @see IEEE Std 802.1X-2010 §11.1.1
  */
-static const unsigned char pae_group_addr[ETH_ALEN] = {
-	0x01, 0x80, 0xc2, 0x00, 0x00, 0x03
+static const u_char eapol_grp_mac[3][ETH_ALEN] = {
+	{ 0x01, 0x80, 0xc2, 0x00, 0x00, 0x00 },		/* Bridge */
+	{ 0x01, 0x80, 0xc2, 0x00, 0x00, 0x03 },		/* Port Access Entity */
+	{ 0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e }		/* LLDP */
 };
 
 /**
- * @name BPF filter for EAPOL frames
+ * @name BPF filter for EAPOL packets
  *
  * Scenario - Create a socket with @p ETH_P_PAE as the protocol. Set the
  * @p PACKET_AUXDATA option on the socket. Receive @p tpacket_auxdata structures
@@ -41,13 +43,13 @@ static const unsigned char pae_group_addr[ETH_ALEN] = {
  * Providing our own @p bpf filter, however, works fine. Note that the filter
  * checks bytes 12:13 - @a after Linux strips out the tag. That's actually nice.
  *
- * @see @p socket(7), "Socket options".
- * @see @p bpf(2).
+ * @see @p socket(7), "Socket options"
+ * @see @p bpf(2)
  * @{
  */
 
 /**
- * @brief A simple @p bpf filter for EAPOL frames.
+ * @brief A simple @p bpf filter for EAPOL packets.
  *
  * The <tt>tcpdump</tt>-style @p bpf assembly equivalent is:
  * @code
@@ -73,7 +75,7 @@ static const struct sock_fprog eapol_fprog = {
 
 /**
  * @brief A <tt>struct ifreq</tt> for @p ioctl on sockets.
- * @see @p netdevice(7).
+ * @see @p netdevice(7)
  */
 static struct ifreq ifr;
 
@@ -198,7 +200,7 @@ static u_char *get_mac(struct iface_t *iface)
  * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
  *              network interface.
  * @return 0 if successful, or -1 if unsuccessful.
- * @see @p cmsg(3).
+ * @see @p cmsg(3)
  */
 static int sockopt(struct iface_t *iface)
 {
@@ -215,18 +217,26 @@ static int sockopt(struct iface_t *iface)
 
 	if (iface->promisc == 1) {
 		mreq.mr_type = PACKET_MR_PROMISC;
+		if (setsockopt(iface->skt, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
+			       &mreq, sizeof(mreq)) == -1) {
+			eerr("cannot set promiscuous mode, interface '%s': %s",
+			     iface->name);
+			return -1;
+		}
 	} else {
 		mreq.mr_type = PACKET_MR_MULTICAST;
 		mreq.mr_alen = ETH_ALEN;
-		memcpy(&mreq.mr_address, &pae_group_addr, ETH_ALEN);
-	}
-
-	if (setsockopt(iface->skt, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
-		       &mreq, sizeof(mreq)) == -1) {
-		eerr("cannot set %s mode, interface '%s': %s",
-		     iface->promisc == 1 ? "promiscuous" : "multicast",
-		     iface->name);
-		return -1;
+		for (int i = 0; i < 3; i++) {
+			memcpy(&mreq.mr_address, &eapol_grp_mac[i], ETH_ALEN);
+			if (setsockopt(iface->skt, SOL_PACKET,
+				       PACKET_ADD_MEMBERSHIP,
+				       &mreq, sizeof(mreq)) == -1) {
+				eerr("cannot add multicast group MAC %s, interface '%s': %s",
+				     iface_strmac((u_char *)&eapol_grp_mac[i]),
+				     iface->name);
+				return -1;
+			}
+		}
 	}
 
 	/* On Linux, a read on a "raw" socket returns a buffer with any VLAN tag
@@ -245,7 +255,7 @@ static int sockopt(struct iface_t *iface)
 /**
  * @brief Prepare the static <tt>struct ifreq</tt> structure.
  * @param name A C string containing Linux's name for a network interface.
- * @see @p netdevice(7).
+ * @see @p netdevice(7)
  */
 static inline void set_ifreq(char *name)
 {
@@ -420,7 +430,7 @@ int iface_set_mac(struct iface_t *iface, u_char *source)
  *         colon-delimited MAC address.
  * @note Like @p ether_ntoa(3). Returns a static buffer whose contents change
  *       with each call to this function.
- * @see @p ether_ntoa(3).
+ * @see @p ether_ntoa(3)
  */
 char *iface_strmac(u_char *mac)
 {

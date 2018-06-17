@@ -19,11 +19,20 @@
 #include "packet.h"
 //#include "parser.h"
 
+#define u16tob_fmt	"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c"
 #define u8tob_fmt	"%c%c%c%c%c%c%c%c"
+#define u16tob(u16)	(u16 & 0x8000 ? '1' : '0'), (u16 & 0x4000 ? '1' : '0'), \
+			(u16 & 0x2000 ? '1' : '0'), (u16 & 0x1000 ? '1' : '0'), \
+			(u16 & 0x800 ? '1' : '0'), (u16 & 0x400 ? '1' : '0'), \
+			(u16 & 0x200 ? '1' : '0'), (u16 & 0x100 ? '1' : '0'), \
+			(u16 & 0x80 ? '1' : '0'), (u16 & 0x40 ? '1' : '0'), \
+			(u16 & 0x20 ? '1' : '0'), (u16 & 0x10 ? '1' : '0'), \
+			(u16 & 0x8 ? '1' : '0'), (u16 & 0x4 ? '1' : '0'), \
+			(u16 & 0x2 ? '1' : '0'), (u16 & 0x1 ? '1' : '0')
 #define u8tob(u8)	(u8 & 0x80 ? '1' : '0'), (u8 & 0x40 ? '1' : '0'), \
 			(u8 & 0x20 ? '1' : '0'), (u8 & 0x10 ? '1' : '0'), \
-			(u8 & 0x08 ? '1' : '0'), (u8 & 0x04 ? '1' : '0'), \
-			(u8 & 0x02 ? '1' : '0'), (u8 & 0x01 ? '1' : '0')
+			(u8 & 0x8 ? '1' : '0'), (u8 & 0x4 ? '1' : '0'), \
+			(u8 & 0x2 ? '1' : '0'), (u8 & 0x1 ? '1' : '0')
 
 /* begin: magic flex lines, for to make not angry compiler */
 #define YY_DECL
@@ -228,26 +237,26 @@ void parser_print_ifaces(struct iface_t *list)
 static void print_filter(struct filter_t *filter)
 {
 	debuglow("\t    filter: %p {", filter);
-	debuglow("\t      frame=0b" u8tob_fmt, u8tob(filter->frame));
-	debuglow("\t      packet=0b" u8tob_fmt, u8tob(filter->packet));
+	debuglow("\t      type=0b" u16tob_fmt, u16tob(filter->type));
+	debuglow("\t      code=0b" u8tob_fmt, u8tob(filter->code));
 	debuglow("\t    }");
 }
 
 static void print_action(struct action_t *action)
 {
 	debuglow("\t    action: %p {", action);
-	debuglow("\t      frame: %p {", action->frame);
+	debuglow("\t      type: %p {", action->type);
 	for (int i = 0; i < 5; i++)
-		if (action->frame[i])
-			debuglow("\t        \"%s\",", action->frame[i]);
+		if (action->type[i])
+			debuglow("\t        \"%s\",", action->type[i]);
 		else
 			debuglow("\t        NULL,");
 	debuglow("\t      }");
 
-	debuglow("\t      packet: %p {", action->packet);
+	debuglow("\t      code: %p {", action->code);
 	for (int i = 0; i < 5; i++)
-		if (action->packet[i])
-			debuglow("\t        \"%s\",", action->packet[i]);
+		if (action->code[i])
+			debuglow("\t        \"%s\",", action->code[i]);
 		else
 			debuglow("\t        NULL,");
 	debuglow("\t      }");
@@ -301,9 +310,9 @@ static void free_action(struct action_t *action)
 	if (action == NULL)
 		return;
 	for (int i = 0; i < 5; i++)
-		free(action->frame[i]);
+		free(action->type[i]);
 	for (int i = 1; i < 5; i++)
-		free(action->packet[i]);
+		free(action->code[i]);
 }
 
 static void yyerror(const char *str)
@@ -329,11 +338,15 @@ static void yyerror(const char *str)
 %token		T_EXEC
 
 %token		T_ALL
-%token		T_PACKET
+%token		T_EAP
 %token		T_START
 %token		T_LOGOFF
 %token		T_KEY
-%token		T_ENCAP_ASF_ALERT
+%token		T_ENCAPSULATED_ASF_ALERT
+%token		T_MKA
+%token		T_ANNOUNCEMENT_GENERIC
+%token		T_ANNOUNCEMENT_SPECIFIC
+%token		T_ANNOUNCEMENT_REQ
 
 %token		T_REQUEST
 %token		T_RESPONSE
@@ -523,46 +536,62 @@ filtertypes	: filtertypes ',' filtertype
 
 filtertype	: T_ALL
 		{
-			for (int i = EAPOL_EAP_PACKET;		// 0
-			     i <= EAPOL_ENCAP_ASF_ALERT;	// 4
+			for (int i = EAPOL_EAP;
+			     i <= EAPOL_ANNOUNCEMENT_REQ;
 			     i++)
-				filter->frame |= 1 << i;
+				filter->type |= 1 << i;
 		}
-		| T_PACKET
+		| T_EAP
 		{
-			filter->frame |= 1 << EAPOL_EAP_PACKET;
+			filter->type |= 1 << EAPOL_EAP;
 		}
 		| T_START
 		{
-			filter->frame |= 1 << EAPOL_START;
+			filter->type |= 1 << EAPOL_START;
 		}
 		| T_LOGOFF
 		{
-			filter->frame |= 1 << EAPOL_LOGOFF;
+			filter->type |= 1 << EAPOL_LOGOFF;
 		}
 		| T_KEY
 		{
-			filter->frame |= 1 << EAPOL_KEY;
+			filter->type |= 1 << EAPOL_KEY;
 		}
-		| T_ENCAP_ASF_ALERT
+		| T_ENCAPSULATED_ASF_ALERT
 		{
-			filter->frame |= 1 << EAPOL_ENCAP_ASF_ALERT;
+			filter->type |= 1 << EAPOL_ENCAPSULATED_ASF_ALERT;
+		}
+		| T_MKA
+		{
+			filter->type |= 1 << EAPOL_MKA;
+		}
+		| T_ANNOUNCEMENT_GENERIC
+		{
+			filter->type |= 1 << EAPOL_ANNOUNCEMENT_GENERIC;
+		}
+		| T_ANNOUNCEMENT_SPECIFIC
+		{
+			filter->type |= 1 << EAPOL_ANNOUNCEMENT_SPECIFIC;
+		}
+		| T_ANNOUNCEMENT_REQ
+		{
+			filter->type |= 1 << EAPOL_ANNOUNCEMENT_REQ;
 		}
 		| T_REQUEST
 		{
-			filter->packet |= 1 << EAP_PACKET_REQUEST;
+			filter->code |= 1 << EAP_CODE_REQUEST;
 		}
 		| T_RESPONSE
 		{
-			filter->packet |= 1 << EAP_PACKET_RESPONSE;
+			filter->code |= 1 << EAP_CODE_RESPONSE;
 		}
 		| T_SUCCESS
 		{
-			filter->packet |= 1 << EAP_PACKET_SUCCESS;
+			filter->code |= 1 << EAP_CODE_SUCCESS;
 		}
 		| T_FAILURE
 		{
-			filter->packet |= 1 << EAP_PACKET_FAILURE;
+			filter->code |= 1 << EAP_CODE_FAILURE;
 		}
 		;
 
@@ -582,46 +611,62 @@ exechead	: T_EXEC
 
 execparam	: T_ALL STRING
 		{
-			for (int i = EAPOL_EAP_PACKET;
-			     i <= EAPOL_ENCAP_ASF_ALERT;
+			for (int i = EAPOL_EAP;
+			     i <= EAPOL_ANNOUNCEMENT_REQ;
 			     i++)
-				action->frame[i] = dequotify_path($2);
+				action->type[i] = dequotify_path($2);
 		}
-		| T_PACKET STRING
+		| T_EAP STRING
 		{
-			action->frame[EAPOL_EAP_PACKET] = dequotify_path($2);
+			action->type[EAPOL_EAP] = dequotify_path($2);
 		}
 		| T_START STRING
 		{
-			action->frame[EAPOL_START] = dequotify_path($2);
+			action->type[EAPOL_START] = dequotify_path($2);
 		}
 		| T_LOGOFF STRING
 		{
-			action->frame[EAPOL_LOGOFF] = dequotify_path($2);
+			action->type[EAPOL_LOGOFF] = dequotify_path($2);
 		}
 		| T_KEY STRING
 		{
-			action->frame[EAPOL_KEY] = dequotify_path($2);
+			action->type[EAPOL_KEY] = dequotify_path($2);
 		}
-		| T_ENCAP_ASF_ALERT STRING
+		| T_ENCAPSULATED_ASF_ALERT STRING
 		{
-			action->frame[EAPOL_ENCAP_ASF_ALERT] = dequotify_path($2);
+			action->type[EAPOL_ENCAPSULATED_ASF_ALERT] = dequotify_path($2);
+		}
+		| T_MKA STRING
+		{
+			action->type[EAPOL_MKA] = dequotify_path($2);
+		}
+		| T_ANNOUNCEMENT_GENERIC STRING
+		{
+			action->type[EAPOL_ANNOUNCEMENT_GENERIC] = dequotify_path($2);
+		}
+		| T_ANNOUNCEMENT_SPECIFIC STRING
+		{
+			action->type[EAPOL_ANNOUNCEMENT_SPECIFIC] = dequotify_path($2);
+		}
+		| T_ANNOUNCEMENT_REQ STRING
+		{
+			action->type[EAPOL_ANNOUNCEMENT_REQ] = dequotify_path($2);
 		}
 		| T_REQUEST STRING
 		{
-			action->packet[EAP_PACKET_REQUEST] = dequotify_path($2);
+			action->code[EAP_CODE_REQUEST] = dequotify_path($2);
 		}
 		| T_RESPONSE STRING
 		{
-			action->packet[EAP_PACKET_RESPONSE] = dequotify_path($2);
+			action->code[EAP_CODE_RESPONSE] = dequotify_path($2);
 		}
 		| T_SUCCESS STRING
 		{
-			action->packet[EAP_PACKET_SUCCESS] = dequotify_path($2);
+			action->code[EAP_CODE_SUCCESS] = dequotify_path($2);
 		}
 		| T_FAILURE STRING
 		{
-			action->packet[EAP_PACKET_FAILURE] = dequotify_path($2);
+			action->code[EAP_CODE_FAILURE] = dequotify_path($2);
 		}
 		;
 

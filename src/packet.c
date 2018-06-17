@@ -1,6 +1,6 @@
 /**
  * @file packet.c
- * @brief EAPOL frame/packet operations
+ * @brief EAPOL packet operations
  */
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +18,7 @@ static void dump(struct peapod_packet pkt);
 static void decode(struct peapod_packet pkt);
 
 /**
- * @name Main buffer for an EAPOL frame
+ * @name Main buffer for an EAPOL packet
  *
  * The size of this buffer is normally 1518 bytes given a 1500-byte MTU, to
  * accommodate the standard 1514-byte Ethernet frame size plus a 4-byte 802.1Q
@@ -27,37 +27,37 @@ static void decode(struct peapod_packet pkt);
  * structure at the point of capture, reading only the EAPOL PDU (EtherType and
  * MTU, normally 1502 bytes) into bytes 16:, and obtaining any 802.1Q tag via
  * a @p PACKET_AUXDATA cmsg from the kernel. Bytes 0:15 may then serve as
- * scratch space for us to reconstruct the complete EAPOL frame.
+ * scratch space for us to reconstruct the complete EAPOL packet.
  *
  * This allows us to do things like adding, modifying, or removing an 802.1Q tag
- * for a proxied frame on a per-egress-interface basis. We simply
+ * for a proxied packet on a per-egress-interface basis. We simply
  * reconstruct/modify the first 16 bytes of this buffer as needed, then call
  * @p write(2) on the socket file descriptor with the proper memory offset.
  * @{
  */
 
-/** @brief Beginning of the main EAPOL frame buffer. */
+/** @brief Beginning of the main EAPOL packet buffer. */
 static uint8_t *pkt_buf = NULL;
 
 /**
- * @brief The EAPOL PDU. Global.
+ * @brief The EAPOL MPDU. Global.
  *
- * Points to byte 16 of the main EAPOL frame buffer, and thereby to the EAPOL
+ * Points to byte 16 of the main EAPOL packet buffer, and thereby to the EAPOL
  * EtherType (0x888e) followed by the (normally 1500-byte) MTU.
  */
-uint8_t *pdu_buf = NULL;
+uint8_t *mpdu_buf = NULL;
 
 /** @brief Normally 1518 bytes. */
 static int pkt_buf_size = 0;
 /** @brief Normally 1502 bytes. Global. */
-int pdu_buf_size = 0;
+int mpdu_buf_size = 0;
 /** @} */
 
 /**
  * @brief A buffer for receiving a <tt>struct packet_auxdata_t</tt>
  *        (actually a <tt>struct tpacket_auxdata</tt>) from the kernel via
  *        @p recvmsg(2).
- * @see @p socket(7), "Socket options".
+ * @see @p socket(7), "Socket options"
  */
 static union {
 	struct cmsghdr cmsg;
@@ -66,7 +66,7 @@ static union {
 
 /** 
  * @brief A <tt>struct msghdr</tt> for @p recvmsg(2).
- * @see @p recvmsg(2).
+ * @see @p recvmsg(2)
  */
 static struct msghdr msg = {
 	.msg_name = NULL,
@@ -81,7 +81,7 @@ extern struct args_t args;
 /**
  * @brief Log a hexadecimal dump of a <tt>struct peapod_packet</tt>.
  * @param packet A <tt>struct peapod_packet</tt> structure representing an
- *               EAPOL frame.
+ *               EAPOL packet.
  */
 static void dump(struct peapod_packet packet)
 {
@@ -90,11 +90,11 @@ static void dump(struct peapod_packet packet)
 
 	char buf[51] = { "" };
 	int l = 0;
-	uint8_t *start = packet_buf(packet, packet.iface == packet.iface_orig ?
-				    1 : 0);
+	uint8_t *start = packet_buf(packet,
+				    packet.iface == packet.iface_orig ? 1 : 0);
 
 	/* Sample output:
-	 * fe:ed:fa:ce:ca:11 EAPOL-Start to PAE multicast MAC, prio 3
+	 * fe:ed:fa:ce:ca:11 EAPOL-Start to {PAE multicast MAC}, prio 3
 	 *   0x0000:  0180 c200 0003 feed face ca11 8100 6000
 	 *   0x0010:  888e 0101 0000 0000 0000 0000 0000 0000
 	 *   0x0020:  0000 0000 0000 0000 0000 0000 0000 0000
@@ -118,14 +118,14 @@ static void dump(struct peapod_packet packet)
  * @brief Log metadata for a <tt>struct peapod_packet</tt> in a
  *        <tt>tcpdump</tt>-like format.
  * @param packet A <tt>struct peapod_packet</tt> structure representing an
- *               EAPOL frame.
+ *               EAPOL packet.
  */
 static void decode(struct peapod_packet packet)
 {
-	char buf[192] = { "" };		/* need 181 */
+	char buf[256] = { "" };
 	int l;
 
-	struct eapolhdr *pdu = packet.pdu;
+	struct eapol_mpdu *mpdu = packet.mpdu;
 
 	/* "recv 1024 bytes on 'eth0': {source MAC} > {dest MAC}" */
 	l = snprintf(buf, sizeof(buf), "%s %ld bytes on '%s'",
@@ -143,45 +143,58 @@ static void decode(struct peapod_packet packet)
 			      packet.tci.vid, packet.tci.pcp,
 			      packet.tci.dei == 1 ? "" : "un");
 
-	/* "..., EAP-Packet (0) v2", "..., EAPOL-Key (3) v1", */
+	/* "..., EAPOL-EAP (0) v2", "..., EAPOL-Key (3) v1", */
 	l += snprintf(buf + l, sizeof(buf) - l, ", %s (%d) v%d",
-		     packet_decode(pdu->type, eapol_types),
-		     pdu->type, pdu->proto_ver);
+		     packet_decode(mpdu->type, eapol_types),
+		     mpdu->type, mpdu->proto_ver);
 
 	/* "..., Response/Identity (1), id 123, len 456", "..., Success" */
-	if (pdu->type == EAPOL_EAP_PACKET) {
-		struct eap_packet *eap = &pdu->eap;	/* convenience */
+	if (mpdu->type == EAPOL_EAP) {
+		struct eapol_eap *eap = &mpdu->eap;	/* convenience */
 
 		l += snprintf(buf + l, sizeof(buf) - l, ", %s",
 			      packet_decode(eap->code, eap_codes));
 
-		if (eap->code == EAP_PACKET_REQUEST ||
-		    eap->code == EAP_PACKET_RESPONSE)
+		if (eap->code == EAP_CODE_REQUEST ||
+		    eap->code == EAP_CODE_RESPONSE)
 			l += snprintf(buf + l, sizeof(buf) - l, "/%s (%d)",
 				      packet_decode(eap->type, eap_types),
 				      eap->type);
 
 		l += snprintf(buf + l, sizeof(buf) - l, ", id %d, len %d",
 			      eap->id, ntohs(eap->len));
-	} else if (pdu->type == EAPOL_KEY) {
-		struct eapol_key *key = &pdu->key;
+	} else if (mpdu->type == EAPOL_KEY) {
+		struct eapol_key *key = &mpdu->key;
 
-		/* "..., type RC4-128 (1)" */
-		l += snprintf(buf + l, sizeof(buf) - l, ", type %s-%d (%d)",
-			     packet_decode(key->desc_type, eapol_key_types),
-			     ntohs(key->key_len) * 8, key->desc_type);
+		/* NOTE: Only really decodes the RC4 Descriptor Type */
+		if (key->desc_type == EAPOL_KEY_TYPE_RC4) {
+			/* "..., type RC4-128 (1)" */
+			l += snprintf(buf + l, sizeof(buf) - l,
+				      ", type %s-%d (%d)",
+				      packet_decode(key->desc_type,
+						    eapol_key_types),
+				      ntohs(key->key_len) * 8, key->desc_type);
 
-		/* "..., index 64, unicast" */
-		l += snprintf(buf + l, sizeof(buf) - l, ", index %d (%scast)",
-			     key->key_index & 0x7f,
-			     key->key_index & 0x80 ? "uni" : "broad");
+			/* "..., index 64, unicast" */
+			l += snprintf(buf + l, sizeof(buf) - l,
+				      ", index %d (%scast)",
+				      key->key_index & 0x7f,
+				      key->key_index & 0x80 ? "uni" : "broad");
+		} else {
+			/* "..., type IEEE 802.11 (2)" */
+			l += snprintf(buf + l, sizeof(buf) - l,
+				      ", type %s (%d)",
+				      packet_decode(key->desc_type,
+						    eapol_key_types),
+				      key->desc_type);
+		}
 	}
 
 	debug("%s", buf);
 }
 
 /**
- * @brief Allocate the main buffer for the EAPOL frame.
+ * @brief Allocate the main buffer for the EAPOL packet.
  * 
  * The size of the buffer is determined according to the highest MTU of the
  * network interfaces used by the program.
@@ -211,30 +224,30 @@ void packet_init(struct iface_t *ifaces)
 	if (pkt_buf == NULL)
 		ecritdie("cannot allocate main packet buffer: %s");
 
-	pdu_buf = pkt_buf + (ETH_ALEN * 2) + sizeof(uint32_t);	/* + 16 */
-	pdu_buf_size = sizeof(uint16_t) + high_mtu;		/* EtherType */
+	mpdu_buf = pkt_buf + (ETH_ALEN * 2) + sizeof(uint32_t);	/* + 16 */
+	mpdu_buf_size = sizeof(uint16_t) + high_mtu;		/* EtherType */
 }
 
 /**
- * @brief Return a pointer to a raw EAPOL frame.
+ * @brief Return a pointer to a raw EAPOL packet.
  *
  * Rewrites the first 16 bytes of the main packet buffer. The result shall point
- * to the beginning of a raw EAPOL frame that is either:
- * -# the original frame, including the VLAN tag, as it appeared when it was
+ * to the beginning of a raw EAPOL packet that is either:
+ * -# the original packet, including the VLAN tag, as it appeared when it was
  *    captured on the ingress interface, or
- * -# the processed frame, possibly with original VLAN tag removed or tag fields
- *    changed according to interface egress suboptions, that should be sent out
- *    on a given egress interface.
+ * -# the processed packet, possibly with original VLAN tag removed or tag
+ *    fields changed according to interface egress options, that should be sent
+ *    out on a given egress interface.
  *
  * The result may then be used by the caller to (hex)dump, Base64-encode, and/or
- * send the frame.
+ * send the packet.
  *
  * @param packet A <tt>struct peapod_packet</tt> structure representing an
- *               EAPOL frame.
+ *               EAPOL packet.
  * @param orig A flag that determines whether the result points to the original
- *             frame as seen on the ingress interface, or to a processed frame
+ *             packet as seen on the ingress interface, or to a processed packet
  *             that should be sent on an egress interface.
- * @return A pointer to the beginning of a complete EAPOL frame.
+ * @return A pointer to the beginning of a complete EAPOL packet.
  */
 uint8_t *packet_buf(struct peapod_packet packet, uint8_t orig) {
 	uint8_t vlan_valid;
@@ -249,18 +262,18 @@ uint8_t *packet_buf(struct peapod_packet packet, uint8_t orig) {
 
 	if (vlan_valid) {
 		uint32_t dot1q = packet_tcitonl(tci);
-		memcpy(pdu_buf - (ETH_ALEN * 2) - sizeof(uint32_t),
+		memcpy(mpdu_buf - (ETH_ALEN * 2) - sizeof(uint32_t),
 		       packet.h_dest, ETH_ALEN);
-		memcpy(pdu_buf - ETH_ALEN - sizeof(uint32_t),
+		memcpy(mpdu_buf - ETH_ALEN - sizeof(uint32_t),
 		       packet.h_source, ETH_ALEN);
-		memcpy(pdu_buf - sizeof(uint32_t), &dot1q, sizeof(uint32_t));
+		memcpy(mpdu_buf - sizeof(uint32_t), &dot1q, sizeof(uint32_t));
 
-		return pdu_buf - (ETH_ALEN * 2) - sizeof(uint32_t);  /* -16 */
+		return mpdu_buf - (ETH_ALEN * 2) - sizeof(uint32_t);  /* -16 */
 	} else {
-		memcpy(pdu_buf - (ETH_ALEN * 2), packet.h_dest, ETH_ALEN);
-		memcpy(pdu_buf - ETH_ALEN, packet.h_source, ETH_ALEN);
+		memcpy(mpdu_buf - (ETH_ALEN * 2), packet.h_dest, ETH_ALEN);
+		memcpy(mpdu_buf - ETH_ALEN, packet.h_source, ETH_ALEN);
 
-		return pdu_buf - (ETH_ALEN * 2);  /* -12 */
+		return mpdu_buf - (ETH_ALEN * 2);  /* -12 */
 	}
 }
 
@@ -279,14 +292,13 @@ uint32_t packet_tcitonl(struct tci_t tci)
 }
 
 /**
- * @brief Decode a byte in an EAPOL frame to a C string.
+ * @brief Decode a byte in an EAPOL packet to a C string.
  *
  * The byte may be one of the following:
- * -# the Type field of an EAPOL frame,
- * -# if the EAPOL frame encapsulates an EAP-Packet, the Code field of the
- *    EAP-Packet, or
- * -# if the EAP-Packet encapsulates an EAP-Request or EAP-Response, the Type
- *    field of the EAP-Request or EAP-Response.
+ * -# the Type field of an EAPOL packet,
+ * -# the Code field of an EAP packet encapsulated in an EAPOL-EAP packet, or
+ * -# the Type field of an EAP-Request or EAP-Response encapsulated in an EAP
+ *    packet.
  *
  * @param val The value of the relevant byte to decode.
  * @param decode A pointer to a <tt>struct decode_t</tt> structure matching
@@ -308,13 +320,13 @@ char* packet_decode(uint8_t val, const struct decode_t *decode)
 }
 
 /**
- * @brief Send an EAPOL frame on a network interface.
+ * @brief Send an EAPOL packet on a network interface.
  *
  * Also executes an egress script if @p iface->egress->action is a
  * <tt>struct action_t</tt> structure.
  *
  * @param packet A <tt>struct peapod_packet</tt> structure representing an
- *               EAPOL frame.
+ *               EAPOL packet.
  * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
  *              network interface.
  * @return The number of bytes successfully sent.
@@ -326,15 +338,15 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 	that up to those same 1514 bytes + 4-byte 802.1Q tag = 1518 bytes?
 
 	Didn't work - sent 1514 bytes, wouldn't insert VLAN tag:
-		sendmsg() with a 1514-byte iovec, and a PACKET_AUXDATA cmsg with
+		sendmsg(2) with a 1514-byte iovec, and a PACKET_AUXDATA cmsg with
 		tp_status set to TP_STATUS_SEND_REQUEST, tp_vlan_tpid and
 		tp_vlan_tci set appropriately
 
 	Didn't work - failed outright, strerror(errno) gives "Message too long":
-		sendmsg() and writev() with a 1518-byte iovec
+		sendmsg(2) and writev(2) with a 1518-byte iovec
 
 	/!\ OMG /!\ Did work /!\ WTF /!\:
-		write() with the 802.1Q tag at bytes 12:15, 1518 total, e.g.
+		write(2) with the 802.1Q tag at bytes 12:15, 1518 total, e.g.
 
 		int mtu = 1500;
 		uint8_t *buf = malloc(mtu + 18);
@@ -349,7 +361,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 
 		Excellent! Looks like regular old write() is the way to go.
 
-	P.S. Didn't work: write() with QinQ at bytes 12:19. >;]
+	P.S. Didn't work: write(2) with QinQ at bytes 12:19. >;]
 */
 	packet.iface = iface;
 	packet.name = iface->name;
@@ -407,21 +419,21 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 }
 
 /**
- * @brief Receive an EAPOL frame on a network interface.
+ * @brief Receive an EAPOL packet on a network interface.
  *
- * If the @p len and @p len_orig members of the result were set to at least 60,
- * several of the other members contain frame, packet, and EAP metadata.
+ * A result with @p len and @p len_orig members of at least 60 also has
+ * Ethernet, EAPOL, and EAP metadata in several other members.
  *
  * @return A <tt>struct peapod_packet</tt> structure representing an EAPOL
- *         frame, in which at least the @p len and @p len_orig members are set
+ *         packet, in which at least the @p len and @p len_orig members are set
  *         to the same value. That value shall be one of the following:
- *         -# the number of bytes successfully received (at least 60),
+ *         -# the number of bytes successfully received (if at least 60),
  *         -# -1 if an error occurred,
  *         -# -2 if fewer than 60 bytes were received (which would mean that the
- *            frame, including the 4-byte FCS, was smaller than the minimum
- *            Ethernet frame size of 64 bytes), or
- *         -# -3 if the frame was too big to fit in the main buffer for the
- *            EAPOL frame (which would mean that the MTU was ignored).
+ *            EAPOL packet was smaller than the minimum Ethernet frame size of
+ *            64 bytes, as the 4-byte FCS is not included), or
+ *         -# -3 if the packet was too big to fit in the main EAPOL packet
+ *            buffer (which would mean that the MTU was ignored).
  */
 struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	struct peapod_packet ret;
@@ -430,7 +442,7 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	struct iovec iov[3] = {
 		{ ret.h_dest, ETH_ALEN },
 		{ ret.h_source, ETH_ALEN },
-		{ pdu_buf, pdu_buf_size }
+		{ mpdu_buf, mpdu_buf_size }
 	};
 
 	msg.msg_iov = iov;
@@ -444,14 +456,14 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	} else if (ret.len < 60) {	/* 64 bytes on the wire including FCS */
 		ret.len = -2;
 		return ret;
-	/* Not passing MSG_TRUNC to recvmsg; we won't ever get here.
+	/* Not passing MSG_TRUNC to recvmsg(2); we won't ever get here.
 
-	} else if (ret.len > (ETH_ALEN * 2) + pdu_buf_size) {
+	} else if (ret.len > (ETH_ALEN * 2) + mpdu_buf_size) {
 
 		ret.len = -3;
 		return ret;
 
-	 */
+	*/
 	}
 
 	if (ioctl(iface->skt, SIOCGSTAMP, &ret.tv) == -1) {
@@ -465,7 +477,7 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 
 	ret.iface = iface;
 	ret.name = iface->name;
-	ret.pdu = (struct eapolhdr *)pdu_buf;
+	ret.mpdu = (struct eapol_mpdu *)mpdu_buf;
 
 	/* Reconstruct and copy VLAN tag to result if found */
 	for (struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
@@ -516,9 +528,9 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	ret.vlan_valid_orig = ret.vlan_valid;
 	ret.tci_orig = ret.tci;
 
-	ret.type = ret.pdu->type;
-	if (ret.type == EAPOL_EAP_PACKET)
-		ret.code = ret.pdu->eap.code;
+	ret.type = ret.mpdu->type;
+	if (ret.type == EAPOL_EAP)
+		ret.code = ret.mpdu->eap.code;
 
 	decode(ret);
 	dump(ret);

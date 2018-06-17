@@ -22,24 +22,27 @@ string			[a-zA-Z0-9/`~!@#$%\^&*()_\-+=:\[\]<>\.?\\]+|L?\"(\\.|[^\\"])*\"
 \n			{ linenum++; }
 "{"|"}"|";"|"/"|","	{ return *yytext; }
 
-	/* Stanzas */
 iface			{ return T_IFACE; }
 ingress			{ return T_INGRESS; }
 egress			{ return T_EGRESS; }
 dot1q			{ return T_DOT1Q; }
 
-	/* Keywords */
 set-mac			{ return T_SET_MAC; }
 promiscuous		{ return T_PROMISCUOUS; }
 filter			{ return T_FILTER; }
 exec			{ return T_EXEC; }
 
 all			{ return T_ALL; }
-packet			{ return T_PACKET; }
+packet			{ return T_EAP; }
 start			{ return T_START; }
 logoff			{ return T_LOGOFF; }
 key			{ return T_KEY; }
-encapsulated-asf-alert	{ return T_ENCAP_ASF_ALERT; }
+encapsulated-asf-alert	{ return T_ENCAPSULATED_ASF_ALERT; }
+mka			{ return T_MKA; }
+announcement-generic	{ return T_ANNOUNCEMENT_GENERIC; }
+announcement-specific	{ return T_ANNOUNCEMENT_SPECIFIC; }
+announcement-req	{ return T_ANNOUNCEMENT_REQ; }
+
 request			{ return T_REQUEST; }
 response		{ return T_RESPONSE; }
 success			{ return T_SUCCESS; }
