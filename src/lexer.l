@@ -33,7 +33,7 @@ filter			{ return T_FILTER; }
 exec			{ return T_EXEC; }
 
 all			{ return T_ALL; }
-packet			{ return T_EAP; }
+eap			{ return T_EAP; }
 start			{ return T_START; }
 logoff			{ return T_LOGOFF; }
 key			{ return T_KEY; }

@@ -21,9 +21,9 @@
 /** @} */
 
 /**
- * @brief 802.1X Tag Control Information.
+ * @brief 802.1Q VLAN Tag Control Information.
  *
- * Represents the three variable fields in a 4-byte 802.1X VLAN tag.
+ * Stores the three variable fields in a 4-byte 802.1Q VLAN tag.
  */
 struct tci_t {
 	uint8_t pcp;			/**< @brief Priority Code Point. */
@@ -72,8 +72,8 @@ struct ingress_t {
 	 *       <tt>struct iface_t</tt> will be unset.
 	 */
 	char set_mac[IFNAMSIZ];
+	struct action_t *action;	/**< @brief Run script on ingress. */	
 	struct filter_t *filter;	/**< @brief Filter on ingress. */
-	struct action_t *action;	/**< @brief Run script on ingress. */
 };
 
 /** @brief Behavior during the egress phase for an interface. */
@@ -111,7 +111,7 @@ struct iface_t {
 	 *       <tt>struct ingress_t</tt> will be unset.
 	 */
 	u_char set_mac[ETH_ALEN + 1];
-	struct iface_t *next;		/**< @brief The next node. */
+	struct iface_t *next;		/**< @brief Next node. */
 };
 
 struct iface_t *parse_config(const char* path);

@@ -172,30 +172,21 @@ void parser_print_ifaces(struct iface_t *list)
 	}
 
 	debuglow("\tiface object: %p {", list);
-	debuglow("\t  name=\"%s\"", list->name);
+	debuglow("\t  name='%s'", list->name);
 	debuglow("\t  index=%d", list->index);
 	debuglow("\t  mtu=%d", list->mtu);
 	debuglow("\t  skt=%d", list->skt);
+	debuglow("\t  recv_ctr=%d", list->recv_ctr);
+	debuglow("\t  send_ctr=%d", list->send_ctr);
 	if (list->ingress != NULL) {
 		struct ingress_t *ingress = list->ingress;
 		debuglow("\t  ingress: %p {", ingress);
-		if (ingress->set_mac[0] != '\0')
-			debuglow("\t    set_mac=\"%s\"", ingress->set_mac);
-		else
-			debuglow("\t    set_mac=NULL");
-
-		if (ingress->filter != NULL)
-			print_filter(ingress->filter);
-		else
-			debuglow("\t    filter=NULL");
-
-		if (ingress->action != NULL)
-			print_action(ingress->action);
-		else
-			debuglow("\t    action=NULL");
+		debuglow("\t    set_mac='%s'", ingress->set_mac);
+		print_action(ingress->action);
+		print_filter(ingress->filter);
 		debuglow("\t  }");
 	} else {
-		debuglow("\t  ingress=NULL");
+		debuglow("\t  ingress: %p", list->ingress);
 	}
 	if (list->egress != NULL) {
 		struct egress_t *egress = list->egress;
@@ -208,26 +199,19 @@ void parser_print_ifaces(struct iface_t *list)
 			debuglow("\t      vid=0x%.04x", tci->vid);
 			debuglow("\t    }");
 		} else {
-			debuglow("\t    tci=NULL");
+			debuglow("\t    tci: %p", egress->tci);
 		}
-		if (egress->filter != NULL)
-			print_filter(egress->filter);
-		if (egress->action != NULL)
-			print_action(egress->action);
+		print_filter(egress->filter);
+		print_action(egress->action);
 		debuglow("\t  }");
 	} else {
-		debuglow("\t  egress=NULL");
+		debuglow("\t  egress: %p", list->egress);
 	}
 	debuglow("\t  promisc=%u", list->promisc);
-	if (list->set_mac[ETH_ALEN] == IFACE_SET_MAC)
-		debuglow("\t  set_mac='%s'", iface_strmac(list->set_mac));
-	else
-		debuglow("\t  set_mac=none");
-
-	if (list->next != NULL)
-		debuglow("\t  next: %p", list->next);
-	else
-		debuglow("\t  next=NULL");
+	debuglow("\t  set_mac='%s',0x%.02x",
+		 iface_strmac(list->set_mac),
+		 list->set_mac[ETH_ALEN]);
+	debuglow("\t  next: %p", list->next);
 	debuglow("\t}");
 
 	if (list->next != NULL)
@@ -236,6 +220,11 @@ void parser_print_ifaces(struct iface_t *list)
 
 static void print_filter(struct filter_t *filter)
 {
+	if (filter == NULL) {
+		debuglow("\t    filter: %p", filter);
+		return;
+	}
+
 	debuglow("\t    filter: %p {", filter);
 	debuglow("\t      type=0b" u16tob_fmt, u16tob(filter->type));
 	debuglow("\t      code=0b" u8tob_fmt, u8tob(filter->code));
@@ -244,21 +233,20 @@ static void print_filter(struct filter_t *filter)
 
 static void print_action(struct action_t *action)
 {
+	if (action == NULL) {
+		debuglow("\t    action: %p", action);
+		return;
+	}
+
 	debuglow("\t    action: %p {", action);
 	debuglow("\t      type: %p {", action->type);
-	for (int i = 0; i < 5; i++)
-		if (action->type[i])
-			debuglow("\t        \"%s\",", action->type[i]);
-		else
-			debuglow("\t        NULL,");
+	for (int i = EAPOL_EAP; i <= EAPOL_ANNOUNCEMENT_REQ; i++)
+		debuglow("\t        '%s',", action->type[i]);
 	debuglow("\t      }");
 
 	debuglow("\t      code: %p {", action->code);
-	for (int i = 0; i < 5; i++)
-		if (action->code[i])
-			debuglow("\t        \"%s\",", action->code[i]);
-		else
-			debuglow("\t        NULL,");
+	for (int i = EAP_CODE_REQUEST; i <= EAP_CODE_FAILURE; i++)
+		debuglow("\t        '%s',", action->code[i]);
 	debuglow("\t      }");
 	debuglow("\t    }");
 }
@@ -438,7 +426,7 @@ ifacehead	: T_IFACE STRING
 			iface->index = index;
 
 			free(tok2);
-			debuglow("iface=0x%p, iface->name=%s, iface->index=%d",
+			debuglow("iface=%p, iface->name=%s, iface->index=%d",
 				 iface, iface->name, iface->index);
 		}
 		;
@@ -458,7 +446,7 @@ ingressdef	: ingresshead '{' ingressparams '}' ';'
 			set_reset((void*)&ingress->filter, (void*)&filter);
 			set_reset((void*)&ingress->action, (void*)&action);
 
-			debuglow("got definition of ingress object at 0x%p",
+			debuglow("got definition of ingress object at %p",
 				 ingress);
 		}
 		;
@@ -472,7 +460,7 @@ ingresshead	: T_INGRESS
 			}
 
 			allocate((void*)&ingress, sizeof(struct ingress_t));
-			debuglow("ingress=0x%p", ingress);
+			debuglow("ingress=%p", ingress);
 		}
 		;
 
@@ -518,7 +506,7 @@ insetmacdef	: T_SET_MAC STRING ';'
 
 filterdef	: filterhead filtertypes ';'
 		{
-			debuglow("got definition of filter object at 0x%p",
+			debuglow("got definition of filter object at %p",
 				 filter);
 		}
 		;
@@ -526,7 +514,7 @@ filterdef	: filterhead filtertypes ';'
 filterhead	: T_FILTER
 		{
 			allocate((void*)&filter, sizeof(struct filter_t));
-			debuglow("filter=0x%p", filter);
+			debuglow("filter=%p", filter);
 		}
 		;
 
@@ -597,7 +585,7 @@ filtertype	: T_ALL
 
 execdef		: exechead execparam ';'
 		{
-			debuglow("got definition of action object at 0x%p",
+			debuglow("got definition of action object at %p",
 				 action);
 		}
 		;
@@ -605,7 +593,7 @@ execdef		: exechead execparam ';'
 exechead	: T_EXEC
 		{
 			allocate((void*)&action, sizeof(struct action_t));
-			debuglow("action=0x%p", action);
+			debuglow("action=%p", action);
 		}
 		;
 
@@ -684,7 +672,7 @@ egressdef	: T_EGRESS '{' egressparams '}' ';'
 			set_reset((void*)&egress->filter, (void*)&filter);
 			set_reset((void*)&egress->action, (void*)&action);
 
-			debuglow("got definition of egress object at 0x%p",
+			debuglow("got definition of egress object at %p",
 				 egress);
 		}
 		;
