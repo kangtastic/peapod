@@ -28,6 +28,7 @@ egress			{ return T_EGRESS; }
 dot1q			{ return T_DOT1Q; }
 
 set-mac			{ return T_SET_MAC; }
+set-mac-from		{ return T_SET_MAC_FROM; }
 promiscuous		{ return T_PROMISCUOUS; }
 filter			{ return T_FILTER; }
 exec			{ return T_EXEC; }

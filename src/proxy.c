@@ -197,15 +197,12 @@ void proxy(struct iface_t *ifaces)
 		for (struct iface_t *i = ifaces;
 		     i != NULL && iface->recv_ctr == 1;
 		     i = i->next) {
-			if (i == iface || i->ingress == NULL ||
-			    i->ingress->set_mac[0] == '\0' ||
-			    (strcmp(i->ingress->set_mac, iface->name) != 0))
+			if (i->set_mac_from != iface->index)
 				continue;
 
-			memset(i->ingress->set_mac, 0, IFNAMSIZ);  /* oneshot */
-
+			i->set_mac_from = 0;  /* oneshot */
 			if (iface_set_mac(i, pkt.h_source) == -1) {
-				warning("won't try to set MAC again, "
+				warning("won't try to autoset MAC again, "
 					"interface %s", i->name);
 				continue;
 			}

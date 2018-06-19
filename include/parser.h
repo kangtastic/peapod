@@ -61,17 +61,6 @@ struct action_t {
 
 /** @brief Behavior during the ingress phase for an interface. */
 struct ingress_t {
-	/**
-	 * @brief Network interface name.
-	 * 
-	 * When the named interface receives an EAPOL packet for the first time,
-	 * the current interface's MAC address will be changed to match the
-	 * packet's source MAC address, and this field will be cleared.
-	 *
-	 * @note If this is set, the @p set_mac member of a parent
-	 *       <tt>struct iface_t</tt> will be unset.
-	 */
-	char set_mac[IFNAMSIZ];
 	struct action_t *action;	/**< @brief Run script on ingress. */	
 	struct filter_t *filter;	/**< @brief Filter on ingress. */
 };
@@ -90,27 +79,37 @@ struct egress_t {
  */
 struct iface_t {
 	char name[IFNAMSIZ];		/**< @brief Network interface name. */
-	int index;			/**< @brief Interface index. */
+	unsigned index;			/**< @brief Interface index. */
 	int mtu;			/**< @brief Maximum Transmission Unit. */
 	int skt;			/**< @brief Raw socket bound to the interface. */
-	int recv_ctr;			/**< @brief Number of EAPOL packets received. */
-	int send_ctr;			/**< @brief Number of EAPOL packets sent. */
+	unsigned recv_ctr;		/**< @brief Number of EAPOL packets received. */
+	unsigned send_ctr;		/**< @brief Number of EAPOL packets sent. */
 	struct ingress_t *ingress;	/**< @brief Ingress options. */
 	struct egress_t *egress;	/**< @brief Egress options. */
 	uint8_t promisc;		/**< @brief Flag: Set promiscuous mode on @p skt. */
 	/**
-	 * @brief @p A MAC address, plus a magic number.
+	 * @brief A MAC address, plus a magic number.
 	 *
-	 * During program startup, the MAC address of the network interface
-	 * represented by the current instance of <tt>struct iface_t</tt> will
-	 * be changed to match the first @p ETH_ALEN bytes of this field, and
-	 * the final byte will be cleared.
+	 * During program startup, the current interface's MAC address will be
+	 * changed to match the first @p ETH_ALEN bytes of this field, and the
+	 * final byte of this field will be cleared.
 	 *
-	 * @note If this is set, its final byte will be set to
-	 *       <tt>IFACE_SET_MAC<tt>, and the @p set_mac member of a child
-	 *       <tt>struct ingress_t</tt> will be unset.
+	 * @note If this is set by the parser, its final byte will be set to
+	 *       <tt>IFACE_SET_MAC<tt>, and the @p set_mac_from field will not
+	 *       be set.
 	 */
 	u_char set_mac[ETH_ALEN + 1];
+	/**
+	 * @brief Index of another configured interface.
+	 *
+	 * When that interface receives an EAPOL packet for the first time,
+	 * the current interface's MAC address will be changed to match the
+	 * packet's source MAC address, and this field will be cleared.
+	 *
+	 * @note If this is set by the parser, the @p set_mac field will not
+	 *       be set.
+	 */
+	unsigned set_mac_from;
 	struct iface_t *next;		/**< @brief Next node. */
 };
 

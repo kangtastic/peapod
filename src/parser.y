@@ -57,7 +57,7 @@ static void free_egress(struct egress_t *egress);
 static void free_action(struct action_t *action);
 
 static char *conffile = NULL;
-static struct if_nameindex *ifni = NULL;
+static struct if_nameindex *if_ni = NULL;
 
 static struct iface_t *ifaces = NULL;
 static struct iface_t *iface = NULL;
@@ -73,8 +73,8 @@ struct iface_t *parse_config(const char *path)
 {
 	linenum = 1;
 
-	ifni = if_nameindex();
-	if (ifni == NULL) {
+	if_ni = if_nameindex();
+	if (if_ni == NULL) {
 		eerr("cannot obtain interface information from kernel: %s");
 		exit(EXIT_FAILURE);
 	}
@@ -94,9 +94,32 @@ struct iface_t *parse_config(const char *path)
 	yylex_destroy();
 	fclose(fd);
 
-	if_freenameindex(ifni);
+	if_freenameindex(if_ni);
 
-	if (iface_count(ifaces) < 2) {
+	int count = 0;
+	for (struct iface_t *i = ifaces; i != NULL; i = i->next) {
+		++count;
+
+		/* check that set-mac-from named a configured interface */
+		if (i->set_mac_from == 0)
+			continue;
+
+		int found = 0;
+		for (struct iface_t *j = ifaces; j != NULL; j = j->next) {
+			if (i->set_mac_from == j->index) {
+				found = 1;
+				break;
+			}
+		}
+
+		if (found == 0) {
+			err("set-mac-from unconfigured interface on '%s'",
+			    i->name);
+			abort_parser();
+		}
+	}
+
+	if (count < 2) {
 		err("at least two interfaces must be defined in config file '%s'",
 		    conffile);
 		abort_parser();
@@ -171,9 +194,9 @@ void parser_print_ifaces(struct iface_t *list)
 		return;
 	}
 
-	debuglow("\tiface object: %p {", list);
+	debuglow("\tiface: %p {", list);
 	debuglow("\t  name='%s'", list->name);
-	debuglow("\t  index=%d", list->index);
+	debuglow("\t  index=%u", list->index);
 	debuglow("\t  mtu=%d", list->mtu);
 	debuglow("\t  skt=%d", list->skt);
 	debuglow("\t  recv_ctr=%d", list->recv_ctr);
@@ -181,7 +204,6 @@ void parser_print_ifaces(struct iface_t *list)
 	if (list->ingress != NULL) {
 		struct ingress_t *ingress = list->ingress;
 		debuglow("\t  ingress: %p {", ingress);
-		debuglow("\t    set_mac='%s'", ingress->set_mac);
 		print_action(ingress->action);
 		print_filter(ingress->filter);
 		debuglow("\t  }");
@@ -211,6 +233,7 @@ void parser_print_ifaces(struct iface_t *list)
 	debuglow("\t  set_mac='%s',0x%.02x",
 		 iface_strmac(list->set_mac),
 		 list->set_mac[ETH_ALEN]);
+	debuglow("\t  set_mac_from=%u", list->set_mac_from);
 	debuglow("\t  next: %p", list->next);
 	debuglow("\t}");
 
@@ -262,7 +285,7 @@ static void abort_parser(void)
 	free_iface(iface);
 	free_iface(ifaces);
 	free(conffile);
-	if_freenameindex(ifni);
+	if_freenameindex(if_ni);
 	exit(EXIT_FAILURE);
 }
 
@@ -321,6 +344,7 @@ static void yyerror(const char *str)
 %token		T_DOT1Q
 
 %token		T_SET_MAC
+%token		T_SET_MAC_FROM
 %token		T_PROMISCUOUS
 %token		T_FILTER
 %token		T_EXEC
@@ -360,24 +384,35 @@ grammar		: grammar ifacedef
 
 ifacedef	: ifacehead '{' ifaceparams '}' ';'
 		{
-			/* check for two set-mac declarations */
-			if (iface->set_mac[ETH_ALEN] == IFACE_SET_MAC &&
-			    ingress != NULL &&
-			    ingress->set_mac[0] != '\0') {
-				err("set-mac twice on interface '%s' (line %d)",
-				    iface->name, linenum);
-				abort_parser();
+			if (iface->set_mac_from != 0) {
+				if (iface->set_mac[ETH_ALEN] == IFACE_SET_MAC) {
+					err("both set-mac and set-mac-from on '%s' (line %d)",
+					    iface->name, linenum);
+					abort_parser();
+				}
+
+				if (iface->index == iface->set_mac_from) {
+					err("set-mac-from self on '%s' (line %d)",
+					    iface->name, linenum);
+					abort_parser();
+				}
 			}
+
 			set_reset((void*)&iface->ingress, (void*)&ingress);
 			set_reset((void*)&iface->egress, (void*)&egress);
+
 			iface->next = ifaces;
-			debuglow("got iface definition for '%s'", iface->name);
+
+			debuglow("got iface definition for '%s' %p",
+				 iface->name, iface);
 			set_reset((void*)&ifaces, (void*)&iface);
 		}
 		| ifacehead ';' /* empty params */
 		{
 			iface->next = ifaces;
-			debuglow("got iface definition for '%s'", iface->name);
+
+			debuglow("got iface definition for '%s' %p",
+				 iface->name, iface);
 			set_reset((void*)&ifaces, (void*)&iface);
 		}
 		;
@@ -394,7 +429,7 @@ ifacehead	: T_IFACE STRING
 
 			int index = 0;
 			int found = 0;
-			for (struct if_nameindex *i = ifni;
+			for (struct if_nameindex *i = if_ni;
 			     i->if_name != NULL; i++) {
 				if (strcmp(i->if_name, tok2) == 0) {
 					index = i->if_index;
@@ -410,8 +445,7 @@ ifacehead	: T_IFACE STRING
 			}
 
 			for (struct iface_t *i = ifaces;
-			     i != NULL;
-			     i = i->next) {
+			     i != NULL; i = i->next) {
 				if (strcmp(tok2, i->name) == 0) {
 					err("interface '%s' already defined (line %d)",
 					    tok2, linenum);
@@ -439,6 +473,7 @@ ifaceparam	: ingressdef
 		| egressdef
 		| promiscuousdef
 		| setmacdef
+		| setmacfromdef
 		;
 
 ingressdef	: ingresshead '{' ingressparams '}' ';'
@@ -446,8 +481,7 @@ ingressdef	: ingresshead '{' ingressparams '}' ';'
 			set_reset((void*)&ingress->filter, (void*)&filter);
 			set_reset((void*)&ingress->action, (void*)&action);
 
-			debuglow("got definition of ingress object at %p",
-				 ingress);
+			debuglow("got ingress definition %p", ingress);
 		}
 		;
 
@@ -468,46 +502,14 @@ ingressparams	: ingressparams ingressparam
 		| ingressparam
 		;
 
-ingressparam	: insetmacdef
+ingressparam	: execdef
 		| filterdef
-		| execdef
 		;
 
-insetmacdef	: T_SET_MAC STRING ';'
-		{
-			char *tok2 = dequotify($2);
-			if (strlen(tok2) > IFNAMSIZ - 1) {
-				err("interface name '%s' too long (line %d)",
-				    tok2, linenum);
-				free(tok2);
-				abort_parser();
-			}
-
-			int found = 0;
-			for (struct if_nameindex *i = ifni;
-			     i->if_name != NULL; i++) {
-				if (strcmp(i->if_name, tok2) == 0) {
-					found = 1;
-					break;
-				}
-			}
-
-			if (found == 0) {
-				err("no interface '%s' found (line %d)",
-				    tok2, linenum);
-				free(tok2);
-				abort_parser();
-			}
-
-			strncpy(ingress->set_mac, tok2, IFNAMSIZ);
-			free(tok2);
-		}
-		;
 
 filterdef	: filterhead filtertypes ';'
 		{
-			debuglow("got definition of filter object at %p",
-				 filter);
+			debuglow("got filter definition %p", filter);
 		}
 		;
 
@@ -524,10 +526,13 @@ filtertypes	: filtertypes ',' filtertype
 
 filtertype	: T_ALL
 		{
+			/*
 			for (int i = EAPOL_EAP;
 			     i <= EAPOL_ANNOUNCEMENT_REQ;
 			     i++)
 				filter->type |= 1 << i;
+			*/
+			filter->type = 0x1ff;
 		}
 		| T_EAP
 		{
@@ -585,8 +590,7 @@ filtertype	: T_ALL
 
 execdef		: exechead execparam ';'
 		{
-			debuglow("got definition of action object at %p",
-				 action);
+			debuglow("got action definition %p", action);
 		}
 		;
 
@@ -672,8 +676,7 @@ egressdef	: T_EGRESS '{' egressparams '}' ';'
 			set_reset((void*)&egress->filter, (void*)&filter);
 			set_reset((void*)&egress->action, (void*)&action);
 
-			debuglow("got definition of egress object at %p",
-				 egress);
+			debuglow("got egress definition %p", egress);
 		}
 		;
 
@@ -688,7 +691,7 @@ egressparam	: filterdef
 
 dot1qdef	: dot1qhead '{' dot1qparams '}' ';'
 		{
-			debuglow("got dot1q definition");
+			debuglow("got dot1q definition %p", tci);
 		}
 		| T_NO T_DOT1Q ';'
 		{
@@ -699,7 +702,7 @@ dot1qdef	: dot1qhead '{' dot1qparams '}' ';'
 			}
 			allocate((void*)&tci, sizeof(struct tci_t));
 			memset(tci, TCI_NO_DOT1Q, sizeof(struct tci_t));
-			debuglow("got negative dot1q definition");
+			debuglow("got dot1q definition %p", tci);
 		}
 		;
 
@@ -712,6 +715,7 @@ dot1qhead	: T_DOT1Q
 			}
 			allocate((void*)&tci, sizeof(struct tci_t));
 			memset(tci, TCI_UNTOUCHED, sizeof(struct tci_t));
+			debuglow("dot1q=%p", tci);
 		}
 		;
 
@@ -794,6 +798,37 @@ setmacdef	: T_SET_MAC STRING ';'
 			}
 
 			regfree(&rgx);
+			free(tok2);
+		}
+		;
+
+setmacfromdef	: T_SET_MAC_FROM STRING ';'
+		{
+			char *tok2 = dequotify($2);
+			if (strlen(tok2) > IFNAMSIZ - 1) {
+				err("interface name '%s' too long (line %d)",
+				    tok2, linenum);
+				free(tok2);
+				abort_parser();
+			}
+
+			unsigned from_index = 0;
+			for (struct if_nameindex *i = if_ni;
+			     i->if_name != NULL; i++) {
+				if (strcmp(i->if_name, tok2) == 0) {
+					from_index = i->if_index;
+					break;
+				}
+			}
+			if (from_index == 0) {
+				err("no interface '%s' found (line %d)",
+				    tok2, linenum);
+				free(tok2);
+				abort_parser();
+			}
+
+			iface->set_mac_from = from_index;
+
 			free(tok2);
 		}
 		;
