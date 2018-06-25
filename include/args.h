@@ -1,20 +1,20 @@
 /**
  * @file args.h
  * @brief Function prototypes for @p args.c, global program arguments data
- *        structure.
+ *        structure
  */
 #pragma once
 #include <stdint.h>
 
 /**
- * @brief The global program arguments data structure.
+ * @brief The global program arguments data structure
  * @see @p defaults.h
  */
 struct args_t {
-	uint8_t help;		/**< @brief Flag: @p -h was provided. */
-	uint8_t daemon;		/**< @brief Flag: @p -d was provided. */
+	uint8_t help;		/**< @brief Flag: @p -h was provided */
+	uint8_t daemon;		/**< @brief Flag: @p -d was provided */
 	/**
-	 * @brief A C string containing the path to the PID file.
+	 * @brief A C string containing the path to the PID file
 	 *
 	 * Providing @p -d means that this will be set to @e something, because
 	 * running as a daemon requires a PID file. May be the argument to
@@ -22,14 +22,14 @@ struct args_t {
 	 */
 	char *pidfile;
 	/**
-	 * @brief A C string containing the path to the config file.
+	 * @brief A C string containing the path to the config file
 	 *
 	 * May be the argument to @p -c. Defaults to @c PEAPOD_CONF_PATH.
 	 */
 	char *conffile;
 	uint8_t test;		/**< @brief Flag: @p -t was provided. */
 	/**
-	 * @brief Logging level.
+	 * @brief Logging level
 	 *
 	 * Defaults to @p LOG_NOTICE (5). Providing @p -v increments this up to
 	 * @p LOG_DEBUGPKT (8).
@@ -38,7 +38,7 @@ struct args_t {
 	 */
 	uint8_t level;
 	/**
-	 * @brief A C string containing the path to the log file.
+	 * @brief The path to the log file
 	 *
 	 * Independently of whether logs are emitted to the console and/or
 	 * @p syslog, controls whether logs are emitted to a log file. If @p -l
@@ -53,5 +53,5 @@ struct args_t {
 	uint8_t oneshot;	/**< @brief Flag: @p -o was provided. */
 };
 
-char *args_canonpath(const char *path, int create);
+char *args_canonpath(const char *path, uint8_t create);
 int args_get(int argc, char* argv[]);

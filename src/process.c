@@ -196,22 +196,20 @@ static void script(struct peapod_packet packet, char *script)
  *               packet.
  * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
  *              network interface.
- * @param dir A flag that specifies whether this function should look for an
- *            ingress or an egress filter mask on @p iface. It may be set to
- *            @p PROCESS_INGRESS or @p PROCESS_EGRESS.
+ * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS.
  *
  * @return The result of the underlying call to @p filter() if there is an
  *         ingress or egress filter mask configured on @p iface, or 0 otherwise.
  */
 int process_filter(struct peapod_packet packet,
-		   struct iface_t *iface, uint8_t dir)
+		   struct iface_t *iface, uint8_t phase)
 {
-	if (dir == PROCESS_INGRESS && iface->ingress != NULL &&
+	if (phase == PROCESS_INGRESS && iface->ingress != NULL &&
 	    iface->ingress->filter != NULL)
 		return filter(iface->ingress->filter,
 			      NULL, packet.name,
 			      packet.type, packet.code);
-	else if (dir == PROCESS_EGRESS && iface->egress != NULL &&
+	else if (phase == PROCESS_EGRESS && iface->egress != NULL &&
 		 iface->egress->filter != NULL)
 		return filter(iface->egress->filter,
 			      packet.name_orig, packet.name,
@@ -235,12 +233,10 @@ int process_filter(struct peapod_packet packet,
  *               Similarly, the second array contains paths to scripts to be
  *               executed if the EAPOL packet is of Type EAPOL-EAP and the EAP
  *               packet it encapsulates is of one of the four defined EAP Codes.
- * @param dir A flag that represents whether @p packet has just been received or
- *            is about to be sent. It may be set to @p PROCESS_INGRESS or
- *            @p PROCESS_EGRESS.
+ * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS.
  */
 void process_script(struct peapod_packet packet,
-		    struct action_t *action, uint8_t dir)
+		    struct action_t *action, uint8_t phase)
 {
 	char *prefix = NULL;		/* "" or "EAP-" */
 	char *desc = NULL;		/* see struct decode_t */
@@ -271,9 +267,9 @@ void process_script(struct peapod_packet packet,
 	if (path == NULL)
 		return;
 
-	if (dir == PROCESS_INGRESS)
+	if (phase == PROCESS_INGRESS)
 		snprintf(buf, sizeof(buf), fmt_ingress, prefix, desc);
-	else if (dir == PROCESS_EGRESS)
+	else if (phase == PROCESS_EGRESS)
 		snprintf(buf, sizeof(buf), fmt_egress, prefix, desc,
 			 packet.name_orig);
 	else

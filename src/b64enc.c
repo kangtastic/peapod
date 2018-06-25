@@ -1,13 +1,13 @@
 /**
  * @file b64enc.c
- * @brief Base64 encoder.
+ * @brief Base64 encoder
  */
 
 #include "b64enc.h"
 
 /**
  * @brief The length of the resulting Base64-encoded string, including the null
- *        terminator, from an input of length @p len.
+ *        terminator, from an input of length @p len
  */
 #define b64len(len) (4 * ((len) / 3) + 5)
 
@@ -24,17 +24,13 @@ static const char b64[64] = {
 };
 
 /**
- * @brief Base64 encoder.
+ * @brief Base64 encoder
  *
- * Allocates a buffer large enough to contain the encoded data, including the
- * null terminator.
- *
- * @param in Data to be Base64-encoded.
- * @param len The length of @p in.
- * @return A C string with the Base64-encoded contents of @p in if successful,
- *         or @p NULL if unsuccessful.
- * @note If successful, the caller is responsible for <tt>free(3)</tt>ing the
- *       result.
+ * @param in Data to be Base64-encoded
+ * @param len The length of @p in
+ * @return A newly allocated C string with the Base64-encoded contents of @p in
+ *         if successful, or @p NULL if unsuccessful
+ * @note If successful, caller is responsible for <tt>free(3)</tt>ing the result
  */
 char *b64enc(const uint8_t *in, size_t len)
 {

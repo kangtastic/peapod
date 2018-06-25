@@ -1,6 +1,6 @@
 /**
  * @file daemonize.c
- * @brief Daemonize the program.
+ * @brief Daemonize the program
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,8 +20,8 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid);
 extern char **environ;
 
 /**
- * @brief Exit if the process referenced by @p pidfile is running.
- * @param pidfile A C string containing the path of a PID file.
+ * @brief Exit if the process referenced by @p pidfile is running
+ * @param pidfile The path of a PID file
  */
 static void check_pidfile(const char *pidfile)
 {
@@ -38,11 +38,11 @@ static void check_pidfile(const char *pidfile)
 }
 
 /**
- * @brief Get the current working directory.
- * @return A C string containing an absolute path that is the current working
- *         directory if successful, or @p NULL if unsuccessful.
- * @note Like @p get_current_dir_name(3). If successful, the caller is
- *       responsible for <tt>free(3)</tt>ing the result.
+ * @brief Get the current working directory
+ * @return The absolute path to the current working directory if successful, or
+ *         @p NULL if unsuccessful
+ * @note Like @p get_current_dir_name(3)
+ * @note If successful, caller is responsible for <tt>free(3)</tt>ing the result
  * @see @p get_current_dir_name(3)
  */
 static char *getpwd(void)
@@ -65,17 +65,17 @@ static char *getpwd(void)
 }
 
 /**
- * @brief Write a PID file.
+ * @brief Write a PID file
  *
  * Attempts to do so "atomically" as per @p daemon(7). Does not write PID file
  * if the file referenced by @p pidfile already exists, or the process ID
  * referenced by the file is in use by a running process.
  *
- * @param pidfile A C string containing the path of a PID file.
- * @param pid A PID.
- * @return The PID actually written to the PID file, which should be the same as
- *         @p pid.
- * @note Exits if unsuccessful.
+ * @param pidfile The path of a PID file
+ * @param pid A PID
+ * @return The PID actually written to the PID file
+ * @note Result should be equal to @pid
+ * @note Exits if unsuccessful
  */
 static pid_t write_pidfile(const char *pidfile, pid_t pid)
 {
@@ -88,7 +88,7 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
 		ecritdie("cannot lock PID file: %s");
 
 	/* Check existing PID */
-	for(int rv, i = 0; i < (int)sizeof(buf); i++) {
+	for(int rv, i = 0; i < (int)sizeof(buf); ++i) {
 		rv = read(ifd, &buf[i], 1);
 		if (rv == -1) {
 			ecritdie("cannot read PID file: %s");
@@ -124,7 +124,7 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
 
 
 	/* Verify written PID */
-	for(int rv, i = 0; i < (int)sizeof(buf); i++) {
+	for(int rv, i = 0; i < (int)sizeof(buf); ++i) {
 		rv = read(ifd, &buf[i], 1);
 		if (rv == -1) {
 			ecritdie("cannot read PID file: %s");
@@ -143,15 +143,15 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
 }
 
 /**
- * @brief Daemonize the program.
+ * @brief Daemonize the program
  *
  * Attempts to do so in the manner described in @p daemon(7) - forks twice, with
  * the parent writing the PID of the second child to a PID file before exiting.
  * The daemon child also adds the PWD environment variable, in case any scripts
  * executed later require it.
  *
- * @param pidfile A C string containing the path of a PID file.
- * @note Exits if unsuccessful.
+ * @param pidfile The path of a PID file
+ * @note Exits if unsuccessful
  */
 void daemonize(const char *pidfile)
 {

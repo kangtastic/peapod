@@ -1,6 +1,6 @@
 /**
  * @file log.c
- * @brief Logging operations.
+ * @brief Logging operations
  */
 #include <stdio.h>
 #include <stdarg.h>
@@ -11,18 +11,20 @@
 #include "log.h"
 #include "peapod.h"
 
-#define DAEMONIZED	2		/**< @brief Disables console output. */
-#define MSGSIZ		1024		/**< @brief Log message buffer. */
-#define TMSIZ		64		/**< @brief Timestamp buffer. */
+#define DAEMONIZED	2		/**< @brief Console output disabled */
+#define MSGSIZ		1024		/**< @brief Log message buffer size */
+#define TMSIZ		64		/**< @brief Timestamp buffer size */
 
-static void log_to_file(int level, FILE* out, const char *msg);
+static void log_to_file(const char *msg, int level, FILE* out);
 
 /**
  * @name Log level descriptions
- * @p levels[] is 5 on-screen characters, normally used for emitting logs to
- * syslog or a log file. <br />
- * @p clevels[] is similar but colorized, used for emitting logs to the console.
  * @{
+ */
+/**
+ * @brief Five on-screen characters
+ *
+ * Used for emitting logs to syslog or to a log file.
  */
 static const char *levels[] = {
 	"EMERG", "ALERT", "CRIT ",
@@ -30,6 +32,11 @@ static const char *levels[] = {
 	"INFO ", "DEBUG", "DBGLO"
 };
 
+/**
+ * @brief Five colorized on-screen characters
+ *
+ * Used for emitting logs to the console.
+ */
 static const char *clevels[] = {
 	"\x1b[1;4;91mEMERG\x1b[0m",	/* bold, underlined, light red */
 	"\x1b[1;4;93mALERT\x1b[0m",	/* bold, underlined, light yellow */
@@ -43,54 +50,63 @@ static const char *clevels[] = {
 };
 /** @} */
 
-FILE *log_fs;				/**< @brief Log file. */
+FILE *log_fs;				/**< @brief Log file */
+static char log_buf[MSGSIZ];		/**< @brief Log message buffer */
+static char log_tm[TMSIZ];		/**< @brief Timestamp buffer */
 extern struct args_t args;
 
 /**
- * @brief Log to a file, @p stdout, or @p stderr.
+ * @brief Log a message to a file or to the console
  *
- * Messages are timestamped if logging to @p stdout or @p stderr, and
- * additionally datestamped if logging to a file.
+ * Messages are timestamped if logging to the console.
+ * Messages are additionally datestamped if logging to a file.
  *
- * @param level The level of the message, which may be the @p syslog levels from
- *              @p LOG_EMERG to @p LOG_DEBUG (0 to 7), or our own
- *              @p LOG_DEBUGLOW (8).
- * @param out A file stream, or @p NULL to emit to the console - @p stdout if
- *            @p level is below @p LOG_WARNING, or @p stderr otherwise.
- * @param msg A C string containing a message to be logged.
+ * @param msg A message to be logged
+ * @param level The level of the message
+ * @param out File stream of log file, or @p NULL to emit to the console
+ * @note @p level may be the @p syslog levels (@p LOG_EMERG to @p LOG_DEBUG,
+ *       i.e. 0 to 7), or our own @p LOG_DEBUGLOW (8). <br />
+ *       Output to console emits to @p stderr if @p level is below
+ *       @p LOG_WARNING, and to @p stdout otherwise.
  */
-static void log_to_file(int level, FILE* out, const char *msg)
+static void log_to_file(const char *msg, int level, FILE* out)
 {
-	static char *fmt = "%s.%03ld %s %s\n";
-	static char buf[TMSIZ];
 	static struct timespec ts;
+	const char *fmt;
+	const char *desc;
 
 	timespec_get(&ts, TIME_UTC);
 
 	if (out == NULL) {
 		out = level < LOG_WARNING ? stderr : stdout;
-		strftime(buf, TMSIZ, "%X", localtime(&ts.tv_sec));
-		fprintf(out, fmt, buf, ts.tv_nsec / 1000000,
-			args.color ? clevels[level] : levels[level], msg);
+		fmt = "%X";
+		desc = args.color ? clevels[level] : levels[level];
 	} else {
-		strftime(buf, TMSIZ, "%x %X", localtime(&ts.tv_sec));
-		fprintf(out, fmt, buf, ts.tv_nsec / 1000000,
-			levels[level], msg);
+		fmt = "%c";
+		desc = levels[level];
+
 	}
 
+	strftime(log_tm, TMSIZ, fmt, localtime(&ts.tv_sec));
+	fprintf(out, "%s.%.03ld %s %s\n",
+		log_tm, ts.tv_nsec / 1000000, desc, msg);
 	fflush(out);
 }
 
 /**
- * @brief Initialize logging.
- * @return 0 if successful, or -1 if unsuccessful.
+ * @brief Initialize logging
+ * @return 0 if successful, or -1 if unsuccessful
  */
 int log_init(void)
 {
 	log_fs = NULL;
+	memset(log_buf, '\0', MSGSIZ);
+	memset(log_tm, '\0', TMSIZ);
 
 	if (args.syslog == 1) {
-		LOG_UPTO(LOG_DEBUG);	/* handle syslog decision ourselves */
+		/* handle syslog decision ourselves */
+		setlogmask(LOG_UPTO(LOG_DEBUG));
+
 		openlog(PEAPOD_PROGRAM, LOG_PID,
 			args.daemon ? LOG_DAEMON : LOG_USER);
 	}
@@ -109,8 +125,8 @@ int log_init(void)
 }
 
 /**
- * @brief Prepare logging when daemonizing.
- * @return 0 if successful, or -1 if unsuccessful.
+ * @brief Prepare logging when daemonizing
+ * @return 0 if successful, or -1 if unsuccessful
  */
 int log_daemonize(void)
 {
@@ -134,19 +150,22 @@ int log_daemonize(void)
 }
 
 /**
- * @brief Log a message.
+ * @brief Log a message
  *
- * Emit the same message to <tt>stdout</tt>/<tt>stderr</tt>, a log file, and/or
- * @p syslog, depending on the program arguments and the value of @p level.
+ * Depending on the program arguments and the value of @p level, the same
+ * message is emitted to console (<tt>stdout</tt>/<tt>stderr</tt>), a log file,
+ * and/or @p syslog.
  *
- * @param level The level of the message, which may be the @p syslog levels from
- *              @p LOG_EMERG to @p LOG_DEBUG (0 to 7), or our own
- *              @p LOG_DEBUGLOW (8).
- * @param file The @p \__FILE__ macro, i.e. the source file of the call to
- *             @p log_msg().
- * @param line The @p \__LINE__ macro, i.e. the line in the source file of the
- *             call to @p log_msg().
- * @param fmt, ... @p printf(3)-style format and variable arguments.
+ * @param level The level of the message
+ * @param file Ordinarily NULL
+ * @param line Ordinarily 0
+ * @param fmt, ... @p printf(3)-style format and variable arguments
+ * @note @p level may be the @p syslog levels (@p LOG_EMERG to @p LOG_DEBUG,
+ *       i.e. 0 to 7), or our own @p LOG_DEBUGLOW (8). <br />
+ *       @p file and @p line are the @p \__FILE__ and @p \__LINE__ macros, i.e.
+ *       the source file and the line in the source file of the call to
+ *       @p log_msg(). They were used during development only in the @p lfoo()
+ *       logging macros defined in @p log.h.
  */
 __attribute__((format (printf, 4, 5)))
 void log_msg(int level, const char *file, int line, const char *fmt, ...)
@@ -155,36 +174,34 @@ void log_msg(int level, const char *file, int line, const char *fmt, ...)
 		return;
 
 	static int len;
-	static char buf[MSGSIZ];
-	memset(buf, 0xff, MSGSIZ);
 
 	if (line > 0) {
-		len = snprintf(buf, MSGSIZ, "%s:%d | ", file, line);
+		len = snprintf(log_buf, MSGSIZ, "%s:%d | ", file, line);
 	} else {
 		len = 0;
-		buf[0] = '\0';
+		log_buf[0] = '\0';
 	}
 
 	va_list vlist;
 	va_start(vlist, fmt);
-	len += vsnprintf(buf + len,
+	len += vsnprintf(log_buf + len,
 			 (len + 3) < MSGSIZ ? MSGSIZ - (len + 3) : 0,
 			 fmt,
 			 vlist);
 	va_end(vlist);
 
 	if (args.daemon != DAEMONIZED)	/* Console output is still enabled */
-		log_to_file(level, NULL, buf);
+		log_to_file(log_buf, level, NULL);
 
 	if (log_fs != NULL)
-		log_to_file(level, log_fs, buf);
+		log_to_file(log_buf, level, log_fs);
 
 	if (args.syslog == 1 && level != LOG_DEBUGLOW)
-		syslog(level, "<%d> %s", level, buf);
+		syslog(level, "<%d> %s", level, log_buf);
 
 
 	if (len > (MSGSIZ - 4)) {
-		sprintf(buf + (MSGSIZ - 4), "...");
+		sprintf(log_buf + (MSGSIZ - 4), "...");
 		warning("previous message too long; %d characters were lost",
 			len - (MSGSIZ - 4));
 	}

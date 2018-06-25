@@ -95,7 +95,7 @@ struct iface_t {
 	 * final byte of this field will be cleared.
 	 *
 	 * @note If this is set by the parser, its final byte will be set to
-	 *       <tt>IFACE_SET_MAC<tt>, and the @p set_mac_from field will not
+	 *       <tt>IFACE_SET_MAC</tt>, and the @p set_mac_from field will not
 	 *       be set.
 	 */
 	u_char set_mac[ETH_ALEN + 1];

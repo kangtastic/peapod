@@ -13,11 +13,12 @@
 #include <regex.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "args.h"
 #include "iface.h"
 #include "log.h"
 #include "packet.h"
-//#include "parser.h"
+//#include "parser.h"			/* Included in packet.h */
 
 #define u16tob_fmt	"%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c"
 #define u8tob_fmt	"%c%c%c%c%c%c%c%c"
@@ -57,7 +58,6 @@ static void free_egress(struct egress_t *egress);
 static void free_action(struct action_t *action);
 
 static char *conffile = NULL;
-static struct if_nameindex *if_ni = NULL;
 
 static struct iface_t *ifaces = NULL;
 static struct iface_t *iface = NULL;
@@ -73,12 +73,6 @@ struct iface_t *parse_config(const char *path)
 {
 	linenum = 1;
 
-	if_ni = if_nameindex();
-	if (if_ni == NULL) {
-		eerr("cannot obtain interface information from kernel: %s");
-		exit(EXIT_FAILURE);
-	}
-
 	conffile = strdup(path);
 	FILE *fd = fopen(conffile, "r");
 	if (fd == NULL) {
@@ -93,8 +87,6 @@ struct iface_t *parse_config(const char *path)
 
 	yylex_destroy();
 	fclose(fd);
-
-	if_freenameindex(if_ni);
 
 	int count = 0;
 	for (struct iface_t *i = ifaces; i != NULL; i = i->next) {
@@ -146,7 +138,7 @@ static inline void set_reset(void **dest, void **src)
 	}
 }
 
-/* caller responsible for free()ing the result */
+/* caller responsible for free(3)ing the result */
 static char *dequotify(const char *in)
 {
 	char *ret;
@@ -162,27 +154,46 @@ static char *dequotify(const char *in)
 	return ret;
 }
 
-/* caller responsible for free()ing the result */
+/* caller responsible for free(3)ing the result */
 static char *dequotify_path(const char *path)
 {
-	if (path[0] != '/') {
-		if (path[0] != '"' && path[1] != '/') {
-			err("script filenames must be absolute paths (line %d)",
-			    linenum);
-			abort_parser();
-		}
-	}
-
 	char *dequotified = dequotify(path);
+	char *ret = args_canonpath(dequotified, 0);
 
-	if (access(dequotified, X_OK) == -1) {
-		eerr("script '%s' is not executable (line %d): %s",
+	if (ret == NULL) {
+		eerr("cannot use script '%s' (line %d): %s",
 		     dequotified, linenum);
 		abort_parser();
 	}
 
-	char *ret = args_canonpath(dequotified, 0);
+	if (strcmp(dequotified, ret) != 0) {
+		err("path to script '%s' must be absolute and canonical (line %d)",
+		    dequotified, linenum);
+		abort_parser();
+	}
+
 	free(dequotified);
+
+	struct stat sb;
+	if (stat(ret, &sb) == -1) {
+		eerr("cannot get file status for script '%s' (line %d): %s",
+		     ret, linenum);
+		abort_parser();
+	}
+
+	mode_t mode;
+	if (sb.st_uid == geteuid())
+		mode = S_IXUSR;
+	else if (sb.st_gid == getegid())
+		mode = S_IXGRP;
+	else
+		mode = S_IXOTH;
+
+	if ((sb.st_mode & mode) == 0) {
+		err("script '%s' is not executable for effective user %u",
+		    ret, geteuid());
+		abort_parser();
+	}
 
 	return ret;
 }
@@ -263,12 +274,12 @@ static void print_action(struct action_t *action)
 
 	debuglow("\t    action: %p {", action);
 	debuglow("\t      type: %p {", action->type);
-	for (int i = EAPOL_EAP; i <= EAPOL_ANNOUNCEMENT_REQ; i++)
+	for (int i = EAPOL_EAP; i <= EAPOL_ANNOUNCEMENT_REQ; ++i)
 		debuglow("\t        '%s',", action->type[i]);
 	debuglow("\t      }");
 
 	debuglow("\t      code: %p {", action->code);
-	for (int i = EAP_CODE_REQUEST; i <= EAP_CODE_FAILURE; i++)
+	for (int i = EAP_CODE_REQUEST; i <= EAP_CODE_FAILURE; ++i)
 		debuglow("\t        '%s',", action->code[i]);
 	debuglow("\t      }");
 	debuglow("\t    }");
@@ -285,7 +296,6 @@ static void abort_parser(void)
 	free_iface(iface);
 	free_iface(ifaces);
 	free(conffile);
-	if_freenameindex(if_ni);
 	exit(EXIT_FAILURE);
 }
 
@@ -320,9 +330,9 @@ static void free_action(struct action_t *action)
 {
 	if (action == NULL)
 		return;
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 5; ++i)
 		free(action->type[i]);
-	for (int i = 1; i < 5; i++)
+	for (int i = 1; i < 5; ++i)
 		free(action->code[i]);
 }
 
@@ -398,14 +408,14 @@ ifacedef	: ifacehead '{' ifaceparams '}' ';'
 				}
 			}
 
-			set_reset((void*)&iface->ingress, (void*)&ingress);
-			set_reset((void*)&iface->egress, (void*)&egress);
+			set_reset((void *)&iface->ingress, (void *)&ingress);
+			set_reset((void *)&iface->egress, (void *)&egress);
 
 			iface->next = ifaces;
 
 			debuglow("got iface definition for '%s' %p",
 				 iface->name, iface);
-			set_reset((void*)&ifaces, (void*)&iface);
+			set_reset((void *)&ifaces, (void *)&iface);
 		}
 		| ifacehead ';' /* empty params */
 		{
@@ -413,7 +423,7 @@ ifacedef	: ifacehead '{' ifaceparams '}' ';'
 
 			debuglow("got iface definition for '%s' %p",
 				 iface->name, iface);
-			set_reset((void*)&ifaces, (void*)&iface);
+			set_reset((void *)&ifaces, (void *)&iface);
 		}
 		;
 
@@ -427,19 +437,10 @@ ifacehead	: T_IFACE STRING
 				abort_parser();
 			}
 
-			int index = 0;
-			int found = 0;
-			for (struct if_nameindex *i = if_ni;
-			     i->if_name != NULL; i++) {
-				if (strcmp(i->if_name, tok2) == 0) {
-					index = i->if_index;
-					found = 1;
-					break;
-				}
-			}
-			if (found == 0) {
-				err("no interface '%s' found (line %d)",
-				    tok2, linenum);
+			unsigned index = if_nametoindex(tok2);
+			if (index == 0) {
+				eerr("no interface '%s' found (line %d): %s",
+				     tok2, linenum);
 				free(tok2);
 				abort_parser();
 			}
@@ -454,7 +455,7 @@ ifacehead	: T_IFACE STRING
 				}
 			}
 
-			allocate((void*)&iface, sizeof(struct iface_t));
+			allocate((void *)&iface, sizeof(struct iface_t));
 
 			strncpy(iface->name, tok2, IFNAMSIZ);
 			iface->index = index;
@@ -478,8 +479,8 @@ ifaceparam	: ingressdef
 
 ingressdef	: ingresshead '{' ingressparams '}' ';'
 		{
-			set_reset((void*)&ingress->filter, (void*)&filter);
-			set_reset((void*)&ingress->action, (void*)&action);
+			set_reset((void *)&ingress->filter, (void *)&filter);
+			set_reset((void *)&ingress->action, (void *)&action);
 
 			debuglow("got ingress definition %p", ingress);
 		}
@@ -493,7 +494,7 @@ ingresshead	: T_INGRESS
 				abort_parser();
 			}
 
-			allocate((void*)&ingress, sizeof(struct ingress_t));
+			allocate((void *)&ingress, sizeof(struct ingress_t));
 			debuglow("ingress=%p", ingress);
 		}
 		;
@@ -515,7 +516,7 @@ filterdef	: filterhead filtertypes ';'
 
 filterhead	: T_FILTER
 		{
-			allocate((void*)&filter, sizeof(struct filter_t));
+			allocate((void *)&filter, sizeof(struct filter_t));
 			debuglow("filter=%p", filter);
 		}
 		;
@@ -529,7 +530,7 @@ filtertype	: T_ALL
 			/*
 			for (int i = EAPOL_EAP;
 			     i <= EAPOL_ANNOUNCEMENT_REQ;
-			     i++)
+			     ++i)
 				filter->type |= 1 << i;
 			*/
 			filter->type = 0x1ff;
@@ -596,7 +597,7 @@ execdef		: exechead execparam ';'
 
 exechead	: T_EXEC
 		{
-			allocate((void*)&action, sizeof(struct action_t));
+			allocate((void *)&action, sizeof(struct action_t));
 			debuglow("action=%p", action);
 		}
 		;
@@ -605,7 +606,7 @@ execparam	: T_ALL STRING
 		{
 			for (int i = EAPOL_EAP;
 			     i <= EAPOL_ANNOUNCEMENT_REQ;
-			     i++)
+			     ++i)
 				action->type[i] = dequotify_path($2);
 		}
 		| T_EAP STRING
@@ -670,11 +671,11 @@ egressdef	: T_EGRESS '{' egressparams '}' ';'
 				abort_parser();
 			}
 
-			allocate((void*)&egress, sizeof(struct egress_t));
+			allocate((void *)&egress, sizeof(struct egress_t));
 
-			set_reset((void*)&egress->tci, (void*)&tci);
-			set_reset((void*)&egress->filter, (void*)&filter);
-			set_reset((void*)&egress->action, (void*)&action);
+			set_reset((void *)&egress->tci, (void *)&tci);
+			set_reset((void *)&egress->filter, (void *)&filter);
+			set_reset((void *)&egress->action, (void *)&action);
 
 			debuglow("got egress definition %p", egress);
 		}
@@ -700,7 +701,7 @@ dot1qdef	: dot1qhead '{' dot1qparams '}' ';'
 				    linenum);
 				abort_parser();
 			}
-			allocate((void*)&tci, sizeof(struct tci_t));
+			allocate((void *)&tci, sizeof(struct tci_t));
 			memset(tci, TCI_NO_DOT1Q, sizeof(struct tci_t));
 			debuglow("got dot1q definition %p", tci);
 		}
@@ -709,11 +710,11 @@ dot1qdef	: dot1qhead '{' dot1qparams '}' ';'
 dot1qhead	: T_DOT1Q
 		{
 			if (tci != NULL) {
-				lerr("dot1q twice in same egress stanza (line %d)",
+				err("dot1q twice in same egress stanza (line %d)",
 				    linenum);
 				abort_parser();
 			}
-			allocate((void*)&tci, sizeof(struct tci_t));
+			allocate((void *)&tci, sizeof(struct tci_t));
 			memset(tci, TCI_UNTOUCHED, sizeof(struct tci_t));
 			debuglow("dot1q=%p", tci);
 		}
@@ -731,23 +732,30 @@ dot1qparam	: prioritydef
 prioritydef	: T_PRIORITY NUMBER ';'
 		{
 			if ($2 > 7) {
-				err("invalid VLAN priority (line %d)", linenum);
+				err("dot1q priority not 0-7 (line %d)",
+				    linenum);
 				abort_parser();
 			}
 			tci->pcp = $2;
 		}
 		;
 
-dropeligibledef	: T_DROP_ELIGIBLE ';'
+dropeligibledef	: T_DROP_ELIGIBLE NUMBER ';'
 		{
-			tci->dei = 1;
+			if ($2 > 1) {
+				err("dot1q drop-eligible not 0-1 (line %d)",
+				    linenum);
+				abort_parser();
+			}
+			tci->dei = $2;
 		}
 		;
 
 iddef		: T_ID NUMBER ';'
 		{
 			if ($2 > 4094) {
-				err("invalid VLAN ID (line %d)", linenum);
+				err("dot1q id not 0-4094 (line %d)",
+				    linenum);
 				abort_parser();
 			}
 			tci->vid = $2;
@@ -763,18 +771,30 @@ promiscuousdef	: T_PROMISCUOUS ';'
 setmacdef	: T_SET_MAC STRING ';'
 		{
 			char *tok2 = dequotify($2);
+
 			regex_t rgx;
 			char *pat = "^([A-Fa-f0-9]{1,2}:){5}[A-Fa-f0-9]{1,2}$";
+			int rv;
+			char *remsg = NULL;	/* regex error message buffer */
+			size_t resiz;
+
 			u_char mac[ETH_ALEN];
 
-			if (regcomp(&rgx, pat, REG_EXTENDED) != 0) {
-				err("cannot compile regex");
+			rv = regcomp(&rgx, pat, REG_EXTENDED);
+			if (rv != 0) {
+				resiz = regerror(rv, &rgx, NULL, 0);
+				allocate((void *)&remsg, resiz);
+				regerror(rv, &rgx, remsg, resiz);
+
+				err("cannot compile regex: %s", remsg);
+				free(remsg);
 				free(tok2);
 				abort_parser();
 			}
 
-			if (regexec(&rgx, tok2, 0, NULL, 0) == 0) {
-				/* Format has been validated by regex */
+			rv = regexec(&rgx, tok2, 0, NULL, 0);
+			if (rv == 0) {
+				/* format has been validated by regex */
 				sscanf(tok2, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
 				       &mac[0], &mac[1], &mac[2],
 				       &mac[3], &mac[4], &mac[5]);
@@ -789,10 +809,22 @@ setmacdef	: T_SET_MAC STRING ';'
 
 				memcpy(iface->set_mac, mac, ETH_ALEN);
 				iface->set_mac[ETH_ALEN] = IFACE_SET_MAC;
-			} else {
+			} else if (rv == REG_NOMATCH) {
 				err("'%s' is not a MAC address (line %d)",
 				    tok2, linenum);
 				regfree(&rgx);
+				free(tok2);
+				abort_parser();
+			} else {
+				/* might not ever get here on Linux,
+				 * but might also be more POSIXly correct
+				 */
+				resiz = regerror(rv, &rgx, NULL, 0);
+				allocate((void *)&remsg, resiz);
+				regerror(rv, &rgx, remsg, resiz);
+
+				err("cannot check for regex match: %s", remsg);
+				free(remsg);
 				free(tok2);
 				abort_parser();
 			}
@@ -812,22 +844,15 @@ setmacfromdef	: T_SET_MAC_FROM STRING ';'
 				abort_parser();
 			}
 
-			unsigned from_index = 0;
-			for (struct if_nameindex *i = if_ni;
-			     i->if_name != NULL; i++) {
-				if (strcmp(i->if_name, tok2) == 0) {
-					from_index = i->if_index;
-					break;
-				}
-			}
-			if (from_index == 0) {
-				err("no interface '%s' found (line %d)",
-				    tok2, linenum);
+			unsigned index = if_nametoindex(tok2);
+			if (index == 0) {
+				eerr("no interface '%s' found (line %d): %s",
+				     tok2, linenum);
 				free(tok2);
 				abort_parser();
 			}
 
-			iface->set_mac_from = from_index;
+			iface->set_mac_from = index;
 
 			free(tok2);
 		}

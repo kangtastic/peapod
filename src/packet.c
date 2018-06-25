@@ -100,7 +100,7 @@ static void dump(struct peapod_packet packet)
 	 *   0x0020:  0000 0000 0000 0000 0000 0000 0000 0000
 	 *   0x0030:  0000 0000 0000 0000 0000 0000 0000 0000
 	 */
-	for(int pos = 0; pos < packet.len; pos++) {
+	for(int pos = 0; pos < packet.len; ++pos) {
 		if (pos % 16 == 0)
 			l = snprintf(buf, sizeof(buf), "  0x%.04x:  ", pos);
 
@@ -244,9 +244,7 @@ void packet_init(struct iface_t *ifaces)
  *
  * @param packet A <tt>struct peapod_packet</tt> structure representing an
  *               EAPOL packet.
- * @param orig A flag that determines whether the result points to the original
- *             packet as seen on the ingress interface, or to a processed packet
- *             that should be sent on an egress interface.
+ * @param orig Flag: Reconstruct original packet as seen on ingress interface?
  * @return A pointer to the beginning of a complete EAPOL packet.
  */
 uint8_t *packet_buf(struct peapod_packet packet, uint8_t orig) {

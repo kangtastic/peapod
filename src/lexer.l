@@ -19,7 +19,7 @@ string			[a-zA-Z0-9/`~!@#$%\^&*()_\-+=:\[\]<>\.?\\]+|L?\"(\\.|[^\\"])*\"
 
 #.*$			{ /* comments */ }
 {whitespace}		{ /* ignore whitespace */ }
-\n			{ linenum++; }
+\n			{ ++linenum; }
 "{"|"}"|";"|"/"|","	{ return *yytext; }
 
 iface			{ return T_IFACE; }
