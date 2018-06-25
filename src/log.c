@@ -190,6 +190,9 @@ void log_msg(int level, const char *file, int line, const char *fmt, ...)
 			 vlist);
 	va_end(vlist);
 
+	if (len > (MSGSIZ - 4))
+		sprintf(log_buf + (MSGSIZ - 4), "...");
+
 	if (args.daemon != DAEMONIZED)	/* Console output is still enabled */
 		log_to_file(log_buf, level, NULL);
 
@@ -201,7 +204,6 @@ void log_msg(int level, const char *file, int line, const char *fmt, ...)
 
 
 	if (len > (MSGSIZ - 4)) {
-		sprintf(log_buf + (MSGSIZ - 4), "...");
 		warning("previous message too long; %d characters were lost",
 			len - (MSGSIZ - 4));
 	}

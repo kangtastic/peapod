@@ -9,8 +9,7 @@
 %define parse.error verbose
 %{
 #include <stdio.h>
-#include <stdlib.h>
-#include <regex.h>
+//#include <stdlib.h>			/* TODO: remove if really unneeded */
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -46,8 +45,7 @@ extern int yylex_destroy(void);
 
 static void allocate(void **ptr, size_t size);
 static inline void set_reset(void **dest, void **src);
-static char *dequotify(const char *in);
-static char *dequotify_path(const char *in);
+static char *validate_path(const char *path);
 
 static void print_filter(struct filter_t *filter);
 static void print_action(struct action_t *action);
@@ -139,40 +137,21 @@ static inline void set_reset(void **dest, void **src)
 }
 
 /* caller responsible for free(3)ing the result */
-static char *dequotify(const char *in)
+static char *validate_path(const char *path)
 {
-	char *ret;
-	if (in[0] == '\"')	/* lexer already detects unclosed quotes */
-		ret = strndup(in + 1, strlen(in) - 2);
-	else
-		ret = strdup(in);
-
-	if (ret == NULL) {
-		ecrit("cannot allocate memory: %s");
-		abort_parser();
-	}
-	return ret;
-}
-
-/* caller responsible for free(3)ing the result */
-static char *dequotify_path(const char *path)
-{
-	char *dequotified = dequotify(path);
-	char *ret = args_canonpath(dequotified, 0);
+	char *ret = args_canonpath(path, 0);
 
 	if (ret == NULL) {
 		eerr("cannot use script '%s' (line %d): %s",
-		     dequotified, linenum);
+		     path, linenum);
 		abort_parser();
 	}
 
-	if (strcmp(dequotified, ret) != 0) {
+	if (strcmp(path, ret) != 0) {
 		err("path to script '%s' must be absolute and canonical (line %d)",
-		    dequotified, linenum);
+		    path, linenum);
 		abort_parser();
 	}
-
-	free(dequotified);
 
 	struct stat sb;
 	if (stat(ret, &sb) == -1) {
@@ -344,8 +323,9 @@ static void yyerror(const char *str)
 
 %}
 
-%token	<str>	STRING
 %token	<num>	NUMBER
+%token	<str>	STRING
+%token	<mac>	MAC
 
 %token		T_IFACE
 
@@ -385,6 +365,7 @@ static void yyerror(const char *str)
 %union {
 	unsigned num;
 	char *str;
+	u_char mac[ETH_ALEN];
 };
 
 %%
@@ -429,38 +410,33 @@ ifacedef	: ifacehead '{' ifaceparams '}' ';'
 
 ifacehead	: T_IFACE STRING
 		{
-			char *tok2 = dequotify($2);
-			if (strlen(tok2) > IFNAMSIZ - 1) {
+			if (strlen($2) > IFNAMSIZ - 1) {
 				err("interface name '%s' too long (line %d)",
-				    tok2, linenum);
-				free(tok2);
+				    $2, linenum);
 				abort_parser();
 			}
 
-			unsigned index = if_nametoindex(tok2);
+			unsigned index = if_nametoindex($2);
 			if (index == 0) {
 				eerr("no interface '%s' found (line %d): %s",
-				     tok2, linenum);
-				free(tok2);
+				     $2, linenum);
 				abort_parser();
 			}
 
 			for (struct iface_t *i = ifaces;
 			     i != NULL; i = i->next) {
-				if (strcmp(tok2, i->name) == 0) {
+				if (strcmp($2, i->name) == 0) {
 					err("interface '%s' already defined (line %d)",
-					    tok2, linenum);
-					free(tok2);
+					    $2, linenum);
 					abort_parser();
 				}
 			}
 
 			allocate((void *)&iface, sizeof(struct iface_t));
 
-			strncpy(iface->name, tok2, IFNAMSIZ);
+			strncpy(iface->name, $2, IFNAMSIZ);
 			iface->index = index;
 
-			free(tok2);
 			debuglow("iface=%p, iface->name=%s, iface->index=%d",
 				 iface, iface->name, iface->index);
 		}
@@ -527,13 +503,11 @@ filtertypes	: filtertypes ',' filtertype
 
 filtertype	: T_ALL
 		{
-			/*
+			// filter->type = 0x1ff;
 			for (int i = EAPOL_EAP;
 			     i <= EAPOL_ANNOUNCEMENT_REQ;
 			     ++i)
 				filter->type |= 1 << i;
-			*/
-			filter->type = 0x1ff;
 		}
 		| T_EAP
 		{
@@ -607,59 +581,59 @@ execparam	: T_ALL STRING
 			for (int i = EAPOL_EAP;
 			     i <= EAPOL_ANNOUNCEMENT_REQ;
 			     ++i)
-				action->type[i] = dequotify_path($2);
+				action->type[i] = validate_path($2);
 		}
 		| T_EAP STRING
 		{
-			action->type[EAPOL_EAP] = dequotify_path($2);
+			action->type[EAPOL_EAP] = validate_path($2);
 		}
 		| T_START STRING
 		{
-			action->type[EAPOL_START] = dequotify_path($2);
+			action->type[EAPOL_START] = validate_path($2);
 		}
 		| T_LOGOFF STRING
 		{
-			action->type[EAPOL_LOGOFF] = dequotify_path($2);
+			action->type[EAPOL_LOGOFF] = validate_path($2);
 		}
 		| T_KEY STRING
 		{
-			action->type[EAPOL_KEY] = dequotify_path($2);
+			action->type[EAPOL_KEY] = validate_path($2);
 		}
 		| T_ENCAPSULATED_ASF_ALERT STRING
 		{
-			action->type[EAPOL_ENCAPSULATED_ASF_ALERT] = dequotify_path($2);
+			action->type[EAPOL_ENCAPSULATED_ASF_ALERT] = validate_path($2);
 		}
 		| T_MKA STRING
 		{
-			action->type[EAPOL_MKA] = dequotify_path($2);
+			action->type[EAPOL_MKA] = validate_path($2);
 		}
 		| T_ANNOUNCEMENT_GENERIC STRING
 		{
-			action->type[EAPOL_ANNOUNCEMENT_GENERIC] = dequotify_path($2);
+			action->type[EAPOL_ANNOUNCEMENT_GENERIC] = validate_path($2);
 		}
 		| T_ANNOUNCEMENT_SPECIFIC STRING
 		{
-			action->type[EAPOL_ANNOUNCEMENT_SPECIFIC] = dequotify_path($2);
+			action->type[EAPOL_ANNOUNCEMENT_SPECIFIC] = validate_path($2);
 		}
 		| T_ANNOUNCEMENT_REQ STRING
 		{
-			action->type[EAPOL_ANNOUNCEMENT_REQ] = dequotify_path($2);
+			action->type[EAPOL_ANNOUNCEMENT_REQ] = validate_path($2);
 		}
 		| T_REQUEST STRING
 		{
-			action->code[EAP_CODE_REQUEST] = dequotify_path($2);
+			action->code[EAP_CODE_REQUEST] = validate_path($2);
 		}
 		| T_RESPONSE STRING
 		{
-			action->code[EAP_CODE_RESPONSE] = dequotify_path($2);
+			action->code[EAP_CODE_RESPONSE] = validate_path($2);
 		}
 		| T_SUCCESS STRING
 		{
-			action->code[EAP_CODE_SUCCESS] = dequotify_path($2);
+			action->code[EAP_CODE_SUCCESS] = validate_path($2);
 		}
 		| T_FAILURE STRING
 		{
-			action->code[EAP_CODE_FAILURE] = dequotify_path($2);
+			action->code[EAP_CODE_FAILURE] = validate_path($2);
 		}
 		;
 
@@ -768,92 +742,34 @@ promiscuousdef	: T_PROMISCUOUS ';'
 		}
 		;
 
-setmacdef	: T_SET_MAC STRING ';'
+setmacdef	: T_SET_MAC MAC ';'
 		{
-			char *tok2 = dequotify($2);
-
-			regex_t rgx;
-			char *pat = "^([A-Fa-f0-9]{1,2}:){5}[A-Fa-f0-9]{1,2}$";
-			int rv;
-			char *remsg = NULL;	/* regex error message buffer */
-			size_t resiz;
-
-			u_char mac[ETH_ALEN];
-
-			rv = regcomp(&rgx, pat, REG_EXTENDED);
-			if (rv != 0) {
-				resiz = regerror(rv, &rgx, NULL, 0);
-				allocate((void *)&remsg, resiz);
-				regerror(rv, &rgx, remsg, resiz);
-
-				err("cannot compile regex: %s", remsg);
-				free(remsg);
-				free(tok2);
+			if (($2[0] & (1 << 0)) != 0) {
+				err("'%s' is a multicast MAC address (line %d)",
+				    iface_strmac($2), linenum);
 				abort_parser();
 			}
 
-			rv = regexec(&rgx, tok2, 0, NULL, 0);
-			if (rv == 0) {
-				/* format has been validated by regex */
-				sscanf(tok2, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-				       &mac[0], &mac[1], &mac[2],
-				       &mac[3], &mac[4], &mac[5]);
-
-				if ((mac[0] & 0xfe) == 1) {
-					err("'%s' is a multicast MAC address (line %d)",
-					    tok2, linenum);
-					regfree(&rgx);
-					free(tok2);
-					abort_parser();
-				}
-
-				memcpy(iface->set_mac, mac, ETH_ALEN);
-				iface->set_mac[ETH_ALEN] = IFACE_SET_MAC;
-			} else if (rv == REG_NOMATCH) {
-				err("'%s' is not a MAC address (line %d)",
-				    tok2, linenum);
-				regfree(&rgx);
-				free(tok2);
-				abort_parser();
-			} else {
-				/* might not ever get here on Linux,
-				 * but might also be more POSIXly correct
-				 */
-				resiz = regerror(rv, &rgx, NULL, 0);
-				allocate((void *)&remsg, resiz);
-				regerror(rv, &rgx, remsg, resiz);
-
-				err("cannot check for regex match: %s", remsg);
-				free(remsg);
-				free(tok2);
-				abort_parser();
-			}
-
-			regfree(&rgx);
-			free(tok2);
+			memcpy(iface->set_mac, $2, ETH_ALEN);
+			iface->set_mac[ETH_ALEN] = IFACE_SET_MAC;
 		}
 		;
 
 setmacfromdef	: T_SET_MAC_FROM STRING ';'
 		{
-			char *tok2 = dequotify($2);
-			if (strlen(tok2) > IFNAMSIZ - 1) {
+			if (strlen($2) > IFNAMSIZ - 1) {
 				err("interface name '%s' too long (line %d)",
-				    tok2, linenum);
-				free(tok2);
+				    $2, linenum);
 				abort_parser();
 			}
 
-			unsigned index = if_nametoindex(tok2);
+			unsigned index = if_nametoindex($2);
 			if (index == 0) {
 				eerr("no interface '%s' found (line %d): %s",
-				     tok2, linenum);
-				free(tok2);
+				     $2, linenum);
 				abort_parser();
 			}
 
 			iface->set_mac_from = index;
-
-			free(tok2);
 		}
 		;

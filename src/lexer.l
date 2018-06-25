@@ -6,6 +6,7 @@
 
 %{
 #include <string.h>
+#include <linux/if_ether.h>
 #include "parser.yy.h"
 
 int linenum;
@@ -13,11 +14,13 @@ int linenum;
 
 digit			[0-9]
 number			({digit})+
+hexdigit		[A-Fa-f0-9]
+mac			({hexdigit}{1,2}":"){5}{hexdigit}{1,2}
 whitespace		([ \t])+
-string			[a-zA-Z0-9/`~!@#$%\^&*()_\-+=:\[\]<>\.?\\]+|L?\"(\\.|[^\\"])*\"
+string			[A-Za-z0-9/`~!@#$%\^&*()_\-+=:\[\]<>\.?\\]+|L?\"(\\.|[^\n\\"])*\"
 %%
 
-#.*$			{ /* comments */ }
+#.*$			{ /* ignore comments */ }
 {whitespace}		{ /* ignore whitespace */ }
 \n			{ ++linenum; }
 "{"|"}"|";"|"/"|","	{ return *yytext; }
@@ -54,14 +57,39 @@ drop-eligible		{ return T_DROP_ELIGIBLE; }
 id			{ return T_ID; }
 no			{ return T_NO; }
 
-{number}		{   yylval.num = atoi(yytext); return NUMBER; }
+{number}		{
+				yylval.num = atoi(yytext);
+				return NUMBER;
+			}
+
+{mac}			{
+				/* Format has been validated by lexer. */
+				sscanf(yytext, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+				       &yylval.mac[0], &yylval.mac[1],
+				       &yylval.mac[2], &yylval.mac[3],
+				       &yylval.mac[4], &yylval.mac[5]);
+				return MAC;
+			}
 
 {string}		{
-				static char string[256];
+				static char str[4096];
+				size_t len = strlen(yytext);
 
-				strncpy(string, yytext, sizeof(string));
-				string[sizeof(string) - 1] = '\0';
-				yylval.str = string;
+				if (len > (sizeof(str) - 1))
+					return T_BAD_TOKEN;
+
+				/* Dequotify strings. Conveniently, the lexer
+				 * already detects unclosed double quotes.
+				 */
+				if (yytext[0] == '\"') {
+					strncpy(str, yytext + 1, len - 2);
+					str[len - 2] = '\0';
+				} else {
+					strcpy(str, yytext);
+				}
+
+				yylval.str = str;
+
 				return STRING;
 			}
 
