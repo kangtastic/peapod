@@ -21,7 +21,7 @@ extern char **environ;
 
 /**
  * @brief Exit if the process referenced by @p pidfile is running
- * @param pidfile The path of a PID file
+ * @param pidfile Path to PID file
  */
 static void check_pidfile(const char *pidfile)
 {
@@ -39,7 +39,7 @@ static void check_pidfile(const char *pidfile)
 
 /**
  * @brief Get the current working directory
- * @return The absolute path to the current working directory if successful, or
+ * @return Absolute path to the current working directory if successful, or
  *         @p NULL if unsuccessful
  * @note Like @p get_current_dir_name(3)
  * @note If successful, caller is responsible for <tt>free(3)</tt>ing the result
@@ -71,7 +71,7 @@ static char *getpwd(void)
  * if the file referenced by @p pidfile already exists, or the process ID
  * referenced by the file is in use by a running process.
  *
- * @param pidfile The path of a PID file
+ * @param pidfile Path to PID file
  * @param pid A PID
  * @return The PID actually written to the PID file
  * @note Result should be equal to @pid
@@ -150,7 +150,7 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
  * The daemon child also adds the PWD environment variable, in case any scripts
  * executed later require it.
  *
- * @param pidfile The path of a PID file
+ * @param pidfile Path to PID file
  * @note Exits if unsuccessful
  */
 void daemonize(const char *pidfile)

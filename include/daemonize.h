@@ -1,6 +1,6 @@
 /**
  * @file daemonize.h
- * @brief Function prototypes for @p daemonize.c.
+ * @brief Function prototypes for @p daemonize.c
  */
 #pragma once
 

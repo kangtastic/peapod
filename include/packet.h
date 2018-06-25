@@ -1,6 +1,6 @@
 /**
  * @file packet.h
- * @brief Function prototypes for @p packet.c, EAPOL/EAP data structures.
+ * @brief Function prototypes for @p packet.c, EAPOL/EAP data structures
  */
 #pragma once
 
@@ -69,7 +69,7 @@
  * @see IEEE Std 802.1X-2010 §11.9
  * @{
  */
-#define EAPOL_KEY_TYPE_RC4		1	/**< @note Deprecated. */
+#define EAPOL_KEY_TYPE_RC4		1	/**< @note Deprecated */
 #define EAPOL_KEY_TYPE_IEEE_80211	2	/**< @see IEEE Std 802.11 */
 /** @} */
 
@@ -151,13 +151,12 @@ struct peapod_packet {
 	ssize_t len_orig;		/**< @brief Original length */
 	uint8_t h_dest[ETH_ALEN];	/**< @brief Destination MAC address */
 	uint8_t h_source[ETH_ALEN];	/**< @brief Source MAC address */
-	uint8_t vlan_valid;		/**< @brief Flag: VLAN (802.1Q) tag currently present */
-	uint8_t vlan_valid_orig;	/**< @brief Flag: VLAN (802.1Q) tag originally present */
+	uint8_t vlan_valid;		/**< @brief Flag: VLAN (802.1Q) tag currently present? */
+	uint8_t vlan_valid_orig;	/**< @brief Flag: VLAN (802.1Q) tag originally present? */
 	struct tci_t tci;		/**< @brief Current 802.1Q Tag Control Information */
 	struct tci_t tci_orig;		/**< @brief Original 802.1Q Tag Control Information */
 	uint8_t type;			/**< @brief EAPOL Packet Type */
 	uint8_t code;			/**< @brief EAP Code */
-	struct eapol_mpdu *mpdu;	/**< @brief Raw EAPOL MPDU */
 };
 
 /**

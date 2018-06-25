@@ -1,6 +1,6 @@
 /**
  * @file iface.h
- * @brief Function prototypes for @p iface.c.
+ * @brief Function prototypes for @p iface.c
  */
 #pragma once
 

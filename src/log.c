@@ -35,7 +35,7 @@ static const char *levels[] = {
 /**
  * @brief Five colorized on-screen characters
  *
- * Used for emitting logs to the console.
+ * Used for emitting logs to the console (@p stdout / @p stderr).
  */
 static const char *clevels[] = {
 	"\x1b[1;4;91mEMERG\x1b[0m",	/* bold, underlined, light red */

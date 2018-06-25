@@ -1,8 +1,8 @@
 /**
  * @file peapod.c
- * @brief Proxy EAP Daemon
+ * @brief Proxy EAPOL Daemon
  *
- * @mainpage peapod - Proxy EAP Daemon
+ * @mainpage peapod - Proxy EAPOL Daemon
  *
  * @section introsec Introduction
  *
@@ -32,6 +32,7 @@ int main(int argc, char *argv[]);
 
 /** 
  * @name Signal counters
+ * @note Global
  * @{
  */
 volatile sig_atomic_t sig_hup = 0;
@@ -40,24 +41,22 @@ volatile sig_atomic_t sig_usr1 = 0;
 volatile sig_atomic_t sig_term = 0;
 /** @} */
 
-/** @brief Program usage string. */
+/** @brief Program usage string */
 static const char usage[] = {
 "\n"
-"%s - Proxy EAP Daemon\n"
+"%s - Proxy EAPOL Daemon\n"
 "\n"
-"Usage: %s [-dtsnh] [-vvv] [-p <pid file>] [-c <config file>]\n"
-"                              [-l [<log file>]]\n"
+"Usage: %s [-dtsqnoh] [-vvv] [-p <pidfile>] [-c <conffile>] [-l [<logfile>]]\n"
 "\n"
 "Mandatory arguments are mandatory for both forms of an option.\n"
 "\n"
-"  -d, --daemon         run as daemon (disables console output, sets --syslog)\n"
-"  -p, --pid=PATH       set PID file (default: %s)\n"
+"  -d, --daemon         run as daemon (sets -s, disables console output)\n"
+"  -p, --pid=PATH       set PID file (sets -d, default: %s)\n"
 "\n"
 "  -c, --config=PATH    set config file (default: %s)\n"
 "  -t, --test           test config file and exit\n"
 "\n"
-"  -l, --log[=PATH]     output to a log file\n"
-"                       (default if PATH not given: %s)\n"
+"  -l, --log[=PATH]     output to a log file (default: %s)\n"
 "\n"
 "  -s, --syslog         output to syslog\n"
 "\n"
@@ -76,35 +75,43 @@ static const char usage[] = {
 "\n"
 "  -h, --help           print this help and exit\n"
 "\n"
-"Version: %s\n"
+"%s version %s\n"
 };
 
-/** @brief An environment containing only @p PATH. */
+/** @brief An environment containing only @p PATH */
 static char *clean_environ[] = { "PATH=" _PATH_STDPATH,	NULL };
 
-extern char **environ;			/**< @brief Environment variables. */
+/**
+ * @brief Environment variables
+ * @note Global, provided by compiler
+ */
+extern char **environ;
 extern struct args_t args;
 
-struct iface_t *ifaces;			/**< @brief Global interface list. */
+/**
+ * @brief Interface list
+ * @note Global
+ */
+struct iface_t *ifaces;
 
 /**
- * @brief Print usage information to @p stderr and exit.
- * @param status The exit status to pass to the @p exit(2) system call.
+ * @brief Print usage information to @p stderr and exit
+ * @param status The exit status to pass to the @p exit(2) system call
  */
 static void help_exit(int status)
 {
 	cerr(usage, PEAPOD_PROGRAM, PEAPOD_PROGRAM, PEAPOD_PID_PATH,
-	     PEAPOD_CONF_PATH, PEAPOD_LOG_PATH, PEAPOD_VERSION);
+	     PEAPOD_CONF_PATH, PEAPOD_LOG_PATH, PEAPOD_PROGRAM, PEAPOD_VERSION);
 	exit(status);
 }
 
 /**
- * @brief Signal handler.
+ * @brief Signal handler
  * 
  * Increment signal counters upon receiving a signal. If more than one @p SIGINT
  * or @p SIGTERM has been received without being acted upon, abort the program.
  *
- * @param sig The signal that was received.
+ * @param sig The signal that was received
  */
 static void signal_handler(int sig)
 {
@@ -130,8 +137,8 @@ static void signal_handler(int sig)
 
 /**
  * @brief Close all open file descriptors except @p stdin, @p stdout, and
- *        @p stderr.
- * @return 0 if successful, or -1 if unsuccessful.
+ *        @p stderr
+ * @return 0 if successful, or -1 if unsuccessful
  */
 int peapod_close_fds(void)
 {
@@ -145,8 +152,8 @@ int peapod_close_fds(void)
 }
 
 /**
- * @brief Redirect @p stdin, @p stdout, and @p stderr to @p /dev/null.
- * @return 0 if successful, or -1 if unsuccessful.
+ * @brief Redirect @p stdin, @p stdout, and @p stderr to @p /dev/null
+ * @return 0 if successful, or -1 if unsuccessful
  */
 int peapod_redir_stdfds(void)
 {
@@ -187,10 +194,10 @@ int peapod_redir_stdfds(void)
 }
 
 /**
- * @brief Main function.
- * @param argc The number of command-line arguments.
- * @param argv A vector of command-line arguments.
- * @return 0 by default.
+ * @brief Main function
+ * @param argc The number of command-line arguments
+ * @param argv An array of command-line arguments (i.e. C strings)
+ * @return 0 by default
  */
 int main(int argc, char *argv[])
 {

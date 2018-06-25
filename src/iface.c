@@ -20,7 +20,7 @@ static u_char *get_mac(struct iface_t *iface);
 static int sockopt(struct iface_t *iface);
 
 /**
- * @brief EAPOL Multicast Group MAC Addresses
+ * @brief EAPOL multicast group MAC addresses
  * @see IEEE Std 802.1X-2010 §11.1.1
  */
 static const u_char eapol_grp_mac[3][ETH_ALEN] = {
@@ -39,9 +39,10 @@ static const u_char eapol_grp_mac[3][ETH_ALEN] = {
  * <i>Just kidding!</i> @p ETH_P_PAE means no @p tpacket_auxdata structures.
  * Thanks, Linux!
  *
- * Providing our own @p bpf filter, however, works fine. Note that the filter
- * checks bytes 12:13 - @a after Linux strips out the tag. That's actually nice.
+ * Providing our own @p bpf filter, however, works fine.
  *
+ * @note The filter checks bytes 12:13 - @a after Linux strips out the tag.
+ *       That's actually convenient.
  * @see @p socket(7), "Socket options"
  * @see @p bpf(2)
  * @{
@@ -124,7 +125,7 @@ static int validate(struct iface_t *iface)
 /**
  * @brief Register the @p skt field of @p iface with an @p epoll instance
  *
- * As the event data, provide @p iface itself, so we know on which interface an
+ * Provide @p iface itself as the event data, so we know on which interface an
  * @p EPOLLIN event occurred.
  *
  * @param epfd File descriptor for an @p epoll instance

@@ -7,12 +7,12 @@
 #include <stdint.h>
 
 /**
- * @brief The global program arguments data structure
+ * @brief The program arguments data structure
  * @see @p defaults.h
  */
 struct args_t {
-	uint8_t help;		/**< @brief Flag: @p -h was provided */
-	uint8_t daemon;		/**< @brief Flag: @p -d was provided */
+	uint8_t help;		/**< @brief Flag: Was @p -h provided? */
+	uint8_t daemon;		/**< @brief Flag: Was @p -d provided? */
 	/**
 	 * @brief A C string containing the path to the PID file
 	 *
@@ -27,7 +27,7 @@ struct args_t {
 	 * May be the argument to @p -c. Defaults to @c PEAPOD_CONF_PATH.
 	 */
 	char *conffile;
-	uint8_t test;		/**< @brief Flag: @p -t was provided. */
+	uint8_t test;		/**< @brief Flag: Was @p -t provided? */
 	/**
 	 * @brief Logging level
 	 *
@@ -47,10 +47,10 @@ struct args_t {
 	 * @p PEAPOD_LOG_PATH.
 	 */
 	char *logfile;
-	uint8_t syslog;		/**< @brief Flag: @p -s was provided. */
-	uint8_t quiet;		/**< @brief Flag: @p -q was provided. */
-	uint8_t color;		/**< @brief Flag: @p -n was provided. */
-	uint8_t oneshot;	/**< @brief Flag: @p -o was provided. */
+	uint8_t syslog;		/**< @brief Flag: Was @p -s provided? */
+	uint8_t quiet;		/**< @brief Flag: Was @p -q provided? */
+	uint8_t color;		/**< @brief Flag: Was @p -n provided? */
+	uint8_t oneshot;	/**< @brief Flag: Was @p -o provided? */
 };
 
 char *args_canonpath(const char *path, uint8_t create);

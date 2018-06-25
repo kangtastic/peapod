@@ -37,8 +37,11 @@ static struct option long_opts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-/** @brief Global program arguments data structure */
-struct args_t args;		
+/**
+ * @brief Program arguments data structure
+ * @note Global
+ */
+struct args_t args;
 
 /** @brief Log the global program arguments data structure */
 static void print_args(void) {
@@ -117,7 +120,7 @@ int args_get(int argc, char* argv[]) {
 			args.syslog = 1;
 			break;
 		case 'p':
-			;
+			args.daemon = 1;
 			if ((args.pidfile = args_canonpath(optarg, 1)) == NULL)
 				goto abort_path;
 			break;

@@ -1,6 +1,6 @@
 /**
  * @file proxy.c
- * @brief Main event loop, related operations.
+ * @brief Main event loop, related operations
  */
 #include <signal.h>
 #include <string.h>
@@ -23,7 +23,7 @@ extern volatile sig_atomic_t sig_term;
 
 extern struct args_t args;
 
-/** @brief Check and set signal counters. */
+/** @brief Check and set signal counters */
 static void check_signals(void) {
 	if (sig_hup > 0) {
 		notice("received SIGHUP");
@@ -46,8 +46,8 @@ static void check_signals(void) {
 }
 
 /**
- * @brief Create an @p epoll instance.
- * @return 0 if successful, -1 if unsuccessful.
+ * @brief Create an @p epoll instance
+ * @return 0 if successful, -1 if unsuccessful
  */
 static int create_epoll(void)
 {
@@ -59,11 +59,9 @@ static int create_epoll(void)
 }
 
 /**
- * @brief Log an error on receiving a spurious @p epoll event.
- *
- * @param name A C string containing the name of a network interface.
- * @param events The events member of a <tt>struct epoll_event</tt>.
- *
+ * @brief Log an error on receiving a spurious @p epoll event
+ * @param name The name of a network interface
+ * @param events The @p events field of a <tt>struct epoll_event</tt>
  * @see @p epoll(4)
  */
 static void spurious_event(char *name, uint32_t events)
@@ -87,10 +85,10 @@ static void spurious_event(char *name, uint32_t events)
 }
 
 /**
- * @brief Main event loop.
+ * @brief Main event loop
  *
  * The loop flow approximates the following:
- * -# Ingress phase: Receive an EAPOL packet (@p packet) on a configured
+ * -# <b>Ingress phase</b>: Receive an EAPOL packet (@p packet) on a configured
  *    interface (@p iface). <br />
  *    @p packet is an Ethernet frame containing an EAPOL MPDU and @p iface is a
  *    network interface configured in the config file.
@@ -103,7 +101,7 @@ static void spurious_event(char *name, uint32_t events)
  *       Type or EAP Code of @p packet, execute the ingress script.
  *     - If @p iface has an ingress filter defined matching @p packet, apply
  *       the ingress filter (i.e. drop @p packet entirely and restart the loop).
- * -# Egress phase: Proxy @packet to other configured interfaces ("egress
+ * -# <b>Egress phase</b>: Proxy @packet to other configured interfaces ("egress
  *    interfaces"). <br />
  *    For each egress interface (@p eiface):
  *     - Make a local copy of @p packet (@p epacket).
@@ -118,8 +116,8 @@ static void spurious_event(char *name, uint32_t events)
  *     - Send @p epacket on @p eiface.
  * -# Restart the loop.
  *
- * @param ifaces A pointer to a list of <tt>struct iface_t</tt> structures
- *               representing network interfaces.
+ * @param ifaces Pointer to a list of <tt>struct iface_t</tt> structures
+ *               representing network interfaces
  */
 void proxy(struct iface_t *ifaces)
 {
@@ -200,17 +198,19 @@ void proxy(struct iface_t *ifaces)
 			if (i->set_mac_from != iface->index)
 				continue;
 
+			/* If iface_set_mac() gets as far as bringing interface
+			 * down, proxy loop will restart unless -o was passed
+			 */
 			i->set_mac_from = 0;  /* oneshot */
-			if (iface_set_mac(i, pkt.h_source) == -1) {
+			if (iface_set_mac(i, pkt.h_source) == 0) {
+				ignore_epollerr = 1;
+				/* Emit this in place of an error */
+				notice("set MAC, interface '%s', restarting",
+				       i->name);
+			} else {
 				warning("won't try to autoset MAC again, "
 					"interface %s", i->name);
-				continue;
 			}
-
-			ignore_epollerr = 1;
-
-			/* Emit this in place of an error */
-			notice("set MAC, interface '%s', restarting", i->name);
 		}
 
 		if (iface->ingress != NULL && iface->ingress->action != NULL)

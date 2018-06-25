@@ -1,6 +1,6 @@
 /**
  * @file parser.y
- * @brief Parser for config file.
+ * @brief Parser for config file
  *
  * Turns a config file into a list of <tt>struct iface_t</tt> structures, so
  * that the program knows which network interfaces it should use and what it

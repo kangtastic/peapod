@@ -1,6 +1,6 @@
 /**
  * @file process.c
- * @brief Process an EAPOL packet.
+ * @brief Process an EAPOL packet
  */
 #include <stdio.h>
 #include <string.h>
@@ -25,22 +25,15 @@ extern uint8_t *mpdu_buf;
 extern int mpdu_buf_size;
 
 /**
- * @brief Determine if an EAPOL packet should be filtered (dropped).
- *
- * @param filter A pointer to a <tt>struct filter_t</tt> structure containing
- *               filter bitmasks for EAPOL Packet Types and EAP Codes.
- * @param name_orig If not @p NULL, a C string containing the name of the
- *                  network interface on which an EAPOL packet was originally
- *                  captured.
- * @param name A C string containing the name of a network interface. If
- *             @p name_orig is not @p NULL, references the network interface on
- *             which an EAPOL Packet was originally captured. Otherwise,
- *             references the network interface on which the EAPOL packet will be
- *             sent.
- * @param type An EAPOL Packet Type.
- * @param code An EAP Code.
- *
- * @return 1 if the EAPOL packet should be filtered, or 0 otherwise.
+ * @brief Determine if an EAPOL packet should be filtered (dropped)
+ * @param filter Pointer to a <tt>struct filter_t</tt> containing filter
+ *               bitmasks for EAPOL Packet Types and EAP Codes
+ * @param name_orig Name of ingress interface, or @p NULL
+ * @param name If @p name_orig is @p NULL, name of ingress interface;
+ *             otherwise, name of egress interface
+ * @param type EAPOL Packet Type
+ * @param code EAP Code
+ * @return 1 if the EAPOL packet should be filtered, or 0 if not
  */
 static int filter(struct filter_t *filter, char *name_orig,
 		  char *name, __u8 type, __u8 code)
@@ -70,7 +63,7 @@ static int filter(struct filter_t *filter, char *name_orig,
 }
 
 /**
- * @brief Execute a script.
+ * @brief Execute a script
  *
  * The script is run with several environment variables set containing at least
  * the entire Base64-encoded Ethernet frame encapsulating an EAPOL packet at the
@@ -78,9 +71,8 @@ static int filter(struct filter_t *filter, char *name_orig,
  * (if applicable) on an egress interface (which may differ from the original in
  * its 802.1Q tag), and associated metadata extracted from @p packet.
  *
- * @param packet A <tt>struct peapod_packet</tt> structure representing an EAPOL
- *               packet.
- * @param script A C string containing the path of the script to be executed.
+ * @param packet A <tt>struct peapod_packet</tt> representing an EAPOL packet
+ * @param script Path of the script to be executed
  * @see The @p env.sh example script for a listing of the possible environment
  *      variables and their values
  */
@@ -129,20 +121,20 @@ static void script(struct peapod_packet packet, char *script)
 	setenv("PKT_TYPE_DESC", packet_decode(packet.type, eapol_types), 1);
 
 	if (packet.type == EAPOL_EAP) {
+		struct eapol_mpdu *mpdu = (struct eapol_mpdu *)mpdu_buf;
 		snprintf(buf, sizeof(buf), "%d", packet.code);
 		setenv("PKT_CODE", buf, 1);
 		setenv("PKT_CODE_DESC", packet_decode(packet.code,
 						      eap_codes), 1);
 
-		snprintf(buf, sizeof(buf), "%d", packet.mpdu->eap.id);
+		snprintf(buf, sizeof(buf), "%d", mpdu->eap.id);
 		setenv("PKT_ID", buf, 1);
 
 		if (packet.code == 1 || packet.code == 2) {
-			snprintf(buf, sizeof(buf), "%d", packet.mpdu->eap.type);
+			snprintf(buf, sizeof(buf), "%d", mpdu->eap.type);
 			setenv("PKT_REQRESP_TYPE", buf, 1);
 			setenv("PKT_REQRESP_DESC",
-			       packet_decode(packet.mpdu->eap.type,
-					     eap_types), 1);
+			       packet_decode(mpdu->eap.type, eap_types), 1);
 		}
 	}
 
@@ -187,19 +179,16 @@ static void script(struct peapod_packet packet, char *script)
 }
 
 /**
- * @brief A wrapper for @p filter().
+ * @brief A wrapper for @p filter()
  *
  * Calls @p filter() with the appropriate parameters extracted from @p packet
  * and @p iface.
  *
- * @param packet A <tt>struct peapod_packet</tt> structure representing an EAPOL
- *               packet.
- * @param iface A pointer to a <tt>struct iface_t</tt> structure representing a
- *              network interface.
- * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS.
- *
+ * @param packet A <tt>struct peapod_packet</tt> representing an EAPOL packet
+ * @param iface Pointer to a <tt>struct iface_t</tt> representing an interface
+ * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS
  * @return The result of the underlying call to @p filter() if there is an
- *         ingress or egress filter mask configured on @p iface, or 0 otherwise.
+ *         ingress or egress filter mask configured on @p iface, or 0 otherwise
  */
 int process_filter(struct peapod_packet packet,
 		   struct iface_t *iface, uint8_t phase)
@@ -219,21 +208,21 @@ int process_filter(struct peapod_packet packet,
 }
 
 /**
- * @brief A wrapper for @p script().
+ * @brief A wrapper for @p script()
  *
- * Calls @p script() with appropriate arguments extracted from @p packet and
- * @p action.
+ * Calls @p script() with the appropriate parameters extracted from @p packet
+ * and @p action.
  *
- * @param packet A <tt>struct peapod_packet</tt> structure representing an EAPOL
- *               packet.
- * @param action A pointer to a <tt>struct action_t</tt> structure containing
- *               two arrays of C strings. The first array contains paths to
- *               scripts to be executed if the EAPOL packet represented by
- *               @p packet is of one of the nine defined EAPOL Packet Types.
- *               Similarly, the second array contains paths to scripts to be
- *               executed if the EAPOL packet is of Type EAPOL-EAP and the EAP
- *               packet it encapsulates is of one of the four defined EAP Codes.
- * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS.
+ * @param packet A <tt>struct peapod_packet</tt> representing an EAPOL packet
+ * @param action Pointer to a <tt>struct action_t</tt> structure containing
+ *               two arrays of script paths (i.e. C strings)
+ * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS
+ * @note The first array in an @p action_t contains paths to scripts to be
+ *       executed if the EAPOL packet represented by @p packet is of one of the
+ *       nine defined EAPOL Packet Types. <br />
+ *       Similarly, the second array contains scripts to be executed if the
+ *       EAPOL packet is of Type EAPOL-EAP and the EAP packet it encapsulates is
+ *       of one of the four defined EAP Codes.
  */
 void process_script(struct peapod_packet packet,
 		    struct action_t *action, uint8_t phase)

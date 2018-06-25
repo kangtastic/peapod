@@ -1,6 +1,6 @@
 /**
  * @file peapod.h
- * @brief Function prototypes for @p peapod.c.
+ * @brief Function prototypes for @p peapod.c
  */
 #pragma once
 
