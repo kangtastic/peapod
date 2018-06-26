@@ -1,5 +1,6 @@
 include/parser.yy.h
+bin/
+html/
 obj/
 src/lexer.c
 src/parser.c
-peapod

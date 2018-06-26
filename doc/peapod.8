@@ -1,0 +1,293 @@
+.TH PEAPOD 8 "May 30 2018" "peapod" ""
+
+
+.SH NAME
+
+peapod \- Proxy EAP Daemon
+
+
+.SH SYNOPSIS
+
+.TP 7
+.B peapod
+.B "[\-dtsqnoh]"
+.B "[\-vvv]"
+.BI "[\-p " pidfile "]"
+.BI "[\-c " configfile "]"
+.BI "[\-l [" logfile "]]"
+
+
+.SH DESCRIPTION
+
+.B peapod
+is a daemon that proxies
+.BR "Extensible Authentication Protocol over LAN (EAPOL)" / "IEEE 802.1X"
+packets between Ethernet interfaces. It supports a few tricks on a
+per\-interface basis, so it may be considered a (highly) rudimentary
+general\-purpose transparent bridging firewall/rewriting proxy for EAPOL.
+
+.TP
+.B "MAC spoofing"
+Interface MAC addresses may be changed to a user\-defined address, or to the
+address of an actual supplicant behind the proxy learned during runtime. This
+enables the device running
+.B peapod
+to masquerade as the supplicant and originate what appears to be authorized
+network traffic once the supplicant establishes an EAPOL session (as long as
+MACsec is not in use).
+
+.TP
+.B "EAPOL/EAP classification"
+.B peapod
+can proxy only certain kinds of packets between certain interfaces
+and execute user\-defined scripts when proxying recognized packet types.
+This functionality is supported for the nine EAPOL Packet Types defined by IEEE
+Std 802.1X\-2010 and the four EAP Codes defined by IETF RFC 2284.
+
+.TP
+.B "VLAN priority tag handling"
+.B peapod
+can add, modify, or remove VLAN priority tags in proxied EAPOL packets. (In
+fact, other fields besides the Priority Code Point field in the 802.1Q VLAN tag
+may be manipulated.)
+
+
+.SH OPERATION
+
+.B EAPOL
+is a port\-based network access control (PNAC) mechanism ensuring that only
+authorized devices are allowed to use a network. In a nutshell, EAPOL blocks
+regular network traffic, such as TCP/IP, from traversing the physical port (e.g.
+on a switch) to which a client is connected until the client successfully
+authenticates.
+
+At startup,
+.B peapod
+reads its config file to determine the network interfaces on which it should
+listen for EAPOL packets and how packets should be received and sent on those
+interfaces. \(dqEAPOL packet\(dq in this sense is an Ethernet frame with the
+EAPOL EtherType of 0x888e encapsulating either an EAP packet or certain EAPOL
+control messages.
+
+See
+.BR peapod.conf (5)
+for config file semantics and syntax.
+
+The remainder of this section provides an overview of
+.BR peapod 's
+control flow once it begins proxying messages proper, and is intended to assist
+in the creation of config files. This can be divided into
+.B ingress
+and
+.B egress
+phases.
+
+.SS "ingress phase"
+.B peapod
+waits until an EAPOL packet arrives on any configured interface, which then
+becomes the
+.BR "ingress interface" .
+
+The following is performed in the listed order:
+
+.IP \(bu
+If the packet is the first packet to be received on the ingress interface, and
+.I another
+interface is configured with
+.RB \(dq set\-mac\-from
+ingress\-interface\-name\(dq, change the
+.I other
+interface's MAC address to that of the packet's sender and drop the packet.
+
+.IP \(bu
+Determine the type of the packet. Check for
+.B "ingress scripts"
+and/or
+.B "ingress filters"
+(scripts/filters configured in an
+.B ingress
+stanza on the ingress interface) that match the packet type.
+
+.IP \(bu
+Execute any matching ingress script.
+.IP \(bu
+Apply any matching ingress filter (i.e. drop the packet).
+
+.PP
+Dropping a packet in this phase means immediately discarding it and returning
+to the beginning of the ingress phase. If the packet was not dropped,
+.B peapod
+moves on to the egress phase.
+
+.SS "egress phase"
+The received packet is proxied to all configured interfaces except for the
+ingress interface, which then become the
+.BR "egress interfaces" .
+
+For each egress interface, the following is performed in the listed order:
+
+.IP \(bu
+Make a copy of the packet.
+
+.IP \(bu
+If any existing 802.1Q VLAN tag in the packet should be manipulated or removed,
+or one should be added (as configured in a
+.B dot1q
+option on the current egress interface), make the necessary changes to the copy.
+
+.IP \(bu
+Check for
+.B "egress filters"
+and/or
+.B "egress scripts"
+(filters/scripts configured in an
+.B egress
+stanza on the current egress interface) that match the packet type.
+
+.IP \(bu
+Apply any matching egress filter (i.e. drop the packet).
+
+.IP \(bu
+Execute any matching egress script.
+
+.IP \(bu
+Send the (copy of the) packet on the current egress interface.
+
+.PP
+Dropping a packet in this phase means discarding the copy and moving on to the
+next egress interface. At the end of the egress phase, the packet may have been
+proxied to one or more egress interfaces, and
+.B peapod
+returns to the beginning of the ingress phase to listen for more packets.
+
+
+.SH EXAMPLES
+
+Example config files and scripts are included in
+.BR peapod 's
+documentation in
+.IR "/usr/share" .
+
+See
+.BR peapod.conf (5)
+for config file semantics and syntax.
+
+
+.SH OPTIONS
+
+All short options except
+.B "\-v"
+also have a long form listed. Mandatory arguments are mandatory for both forms.
+
+.TP
+.BR "\-d" , " \-\-daemon"
+Run as a daemon. Logging to the console
+.RB ( stdout
+and
+.BR stderr )
+is disabled. Sets
+.BR \-s .
+
+.TP
+.BR "\-p " pidfile, " \-\-pid " pidfile
+Specify the path to the PID file if the default of
+.I /var/run/peapod.pid
+should not be used. Sets
+.BR \-d .
+
+.TP
+.BR "\-c " configfile, " \-\-pid " configfile
+Specify the path to the config file if the default of
+.I /etc/peapod.conf
+should not be used.
+.B peapod
+will not run without a config file; see
+.BR peapod.conf (5)
+for more details.
+
+.TP
+.BR "\-t" , " \-\-test"
+Test the config file and exit.
+
+.TP
+.BR "\-l " [logfile], " \-\-log " [logfile]
+Enable logging to a log file. Optionally specify the path to the file if the
+default of
+.I /var/log/peapod.log
+should not be used.
+
+.TP
+.BR "\-s" , " \-\-syslog"
+Enable logging to syslog. Set automatically by
+.B \-d
+and
+.BR \-p .
+
+.TP
+.B "\-v"
+Increase log verbosity; can be specified up to three times.
+With
+.BR "\-v" ,
+informational messages are also logged.
+With
+.BR "\-vv" ,
+so are debug messages.
+With
+.BR "\-vvv" ,
+so are low\-level debug messages such as data structure views and Ethernet frame
+hexdumps. (As these are extremely voluble, they are logged only to the console
+and/or to a log file, and never to syslog.)
+
+.TP
+.BR "\-q" , " \-\-quiet\-script"
+Treat script execution notices as informational, so that they are
+logged only if at least one
+.B "\-v"
+was provided.
+
+.TP
+.BR "\-n" , " \-\-no\-color"
+Do not colorize console logging output.
+
+.TP
+.BR "\-o", " \-\-oneshot"
+Do not restart the proxy after certain errors occur, such as a configured
+interface going down unexpectedly. The default error handling behavior once the
+proxy is running is to wait ten seconds between unlimited restart attempts.
+
+.TP
+.BR "\-h", " \-\-help"
+Print a help message to the console.
+
+
+.SH FILES
+
+.nf
+.I /usr/sbin/peapod
+.I /etc/peapod.conf
+.I /var/log/peapod.log
+.I /var/run/peapod.pid
+.fi
+
+
+.SH BUGS
+
+Definitely. For suggestions, bug reports, contributions, pull requests, etc.,
+please contact the author via the project page at github.com/kangtastic/peapod
+or via e\-mail at <kangscinate@gmail.com>.
+
+While not a bug per se, note that
+.BR peapod 's
+usefulness is greatly limited on MACsec\-enabled networks.
+
+
+.SH "SEE ALSO"
+
+.BR peapod.conf (5)
+
+
+.SH AUTHORS
+
+.nf
+James Seo (kangtastic) <kangscinate@gmail.com>
+.fi

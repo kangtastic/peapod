@@ -1,0 +1,12 @@
+[Unit]
+Description=Proxy EAP Daemon
+Documentation=man:peapod(8)
+After=network.target
+
+[Service]
+ExecStart=__SBIN__/peapod -d
+Type=forking
+PIDFile=/var/run/peapod.pid
+
+[Install]
+WantedBy=multi-user.target

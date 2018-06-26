@@ -1,0 +1,808 @@
+.TH PEAPOD.CONF 5 "May 30 2018" "peapod 0.1.0" ""
+
+
+.SH NAME
+
+peapod.conf \- configuration file for
+.B peapod
+
+
+.SH DESCRIPTION
+
+.B peapod
+requires a config file to determine the network interfaces on which it should
+listen for EAPOL packets and how packets should be received and sent on those
+interfaces. \(dqEAPOL packet\(dq in this sense is an Ethernet frame with the
+EAPOL EtherType of 0x888e encapsulating either an EAP packet or certain EAPOL
+control messages.
+
+.SS Syntax
+The syntax is mostly self\-explanatory.
+
+Comment lines start with
+.B #
+(a number sign), and paths containing spaces may be enclosed in
+.B \(dq\(dq
+(double quotes).
+
+Some options have a stanza form, requiring one or more suboptions between a
+.B {
+(opening curly brace) and an accompanying
+.B }
+(closing curly brace) as part of the option definition.
+
+All option/suboption definitions end with
+.B ;
+(a semicolon). 
+
+.SS Requirements
+The config file must contain at least two interface definitions.
+
+Two forms are acceptable:
+
+.nf
+.BR "iface " name ;
+.BR "iface " "name " {
+	ingress stanza
+	egress stanza
+	set\-mac definition OR set\-mac\-from definition
+	promiscuous definition
+.B };
+.fi
+
+In the simpler first form, the interface just grabs all EAPOL packets it sees
+off the wire and hands them off to be proxied to (sent out on) other configured
+interfaces without ever doing anything special to or with the packets.
+
+In the second form,
+.B iface
+is a stanza, and suboptions are provided to influence
+.BR peapod 's
+behavior with respect to the named interface.
+
+The minimum config file is therefore:
+
+.RS
+.nf
+iface eth0;
+iface eth1;
+.fi
+.RE
+
+
+.SH OPTIONS
+
+See
+.BR peapod (8),
+.RB \(dq OPERATION \(dq
+to understand how and where options exert an effect within the context of
+.BR peapod 's
+control flow.
+
+.SS "iface options"
+The options
+.B set\-mac
+and
+.B set\-mac\-from
+cannot be combined on the same interface.
+
+.TP
+.B ingress
+.nf
+.B "ingress {"
+	exec definition(s)
+	filter definition(s)
+.B };
+.fi
+
+Stanza with options for an interface during the ingress phase.
+
+See also
+.RB \(dq "ingress options" \(dq
+below.
+
+.TP
+.B egress
+.nf
+.B "egress {"
+	dot1q stanza OR no dot1q definition
+	filter definition(s)
+	exec definition(s)
+.B };
+.fi
+
+Stanza with options for an interface during the egress phase.
+
+See also
+.RB \(dq "egress options" \(dq
+below.
+
+.TP
+.B set\-mac
+.nf
+.BI "set\-mac " "xx:xx:xx:xx:xx:xx" ;
+.fi
+
+Set a user\-specified MAC address on an interface during program startup.
+
+Typically defined on an
+.I "authenticator\-facing"
+interface with the address of a supplicant device. Once the supplicant
+establishes an EAPOL session, traffic originated by the device running
+.B peapod
+appears to be authorized (as long as MACsec is not in use).
+
+.TP
+.B set\-mac\-from
+.nf
+.BI "set\-mac\-from " from\-name ;
+.fi
+
+Automatically set the MAC address of an interface to that of the sender of the
+first EAPOL packet received on
+.IR from\-name .
+.I from\-name
+must be the name of another interface configured with its own
+.B iface
+definition elsewhere in the config file.
+
+Similarly to
+.BR set\-mac ,
+typically defined on an
+.I "authenticator\-facing"
+interface, but with the name of a
+.I "supplicant\-facing"
+interface. Once the supplicant establishes an EAPOL session, traffic originated
+by the device running
+.B peapod
+appears to be authorized (as long as MACsec is not in use).
+
+Cannot be combined on the same interface with
+.BR set\-mac .
+
+.TP
+.B promiscuous
+.B promiscuous;
+
+Put interface into promiscuous mode instead of the normal multicast mode during
+startup.
+
+Practically never needed. Only necessary when the interface or its drivers do
+not properly support Ethernet multicast (highly unlikely on a recent system).
+
+.SS "ingress options"
+Ingress script execution occurs before, and does not affect, ingress filtering.
+
+See also
+.RB \(dq TYPES \(dq
+for a listing of the
+.I type
+keywords used with the
+.B exec
+and
+.B filter
+options.
+
+.TP
+.B exec
+.nf
+.BI "exec " "type script\-path" ;
+.fi
+
+Execute a script upon receiving a given
+.I type
+of EAPOL/EAP packet on an
+interface.
+
+See also
+.RB \(dq SCRIPTS \(dq
+for more information on script execution.
+
+.TP
+.B filter
+.nf
+.BI "filter " type ", " type ", " \[u2026] ;
+.BI "filter " type ;
+.fi
+
+Filter (drop) packets of the given
+.IR type (s)
+received on an interface.
+
+In the ingress phase, filtered packets are dropped entirely and not proxied to
+other interfaces.
+
+.SS "egress options"
+Egress filtering occurs before, and may prevent, egress script execution.
+
+See also
+.RB \(dq TYPES \(dq
+for a listing of the
+.I type
+keywords used with the
+.B filter
+and
+.B exec
+options.
+
+.TP
+.B dot1q
+.nf
+.BR "dot1q {"
+	priority definition
+	drop\-eligible definition
+	id definition
+.B "};"
+.B "no dot1q;"
+.fi
+
+In the stanza form, if a packet ready to be sent on an interface has an existing
+802.1Q VLAN tag (was received tagged on its ingress interface), modify the tag
+fields according to the
+.B "dot1q options"
+contained in the stanza before sending it out. If it was received untagged, add
+a blank tag first and treat it as an existing tag.
+
+In the second form, prevent any packets from being sent on an interface tagged.
+Any existing tags are removed.
+
+Unlikely to be needed, but implemented for the sake of flexibility.
+
+See also
+.RB \(dq "dot1q options" \(dq
+below.
+
+.TP
+.B filter
+.nf
+.BI "filter " type ", " type ", " \[u2026] ;
+.BI "filter " type ;
+.fi
+
+Filter (drop) packets of the given
+.IR type (s)
+ready to be sent on an interface.
+
+In the egress phase, filtered packets are dropped only on the interface on which
+they are filtered, and may still be sent on other interfaces.
+
+.TP
+.B exec
+.nf
+.BR "exec " "type script\-path" ;
+.fi
+
+Execute a script immediately before a given
+.I type
+of packet is sent on an interface.
+
+See also
+.RB \(dq SCRIPTS \(dq
+for more information on script execution.
+
+.SS "dot1q options"
+IEEE 802.1Q VLAN tags are 32 bits long, and contain several fields. They are
+inserted immediately after the destination and source MAC addresses in an
+Ethernet frame, and their main use is to signify to upstream networking
+equipment that the frame should be treated as belonging to a particular
+virtual LAN.
+.TS
+allbox left tab(;);
+cb s s s s
+lb c c c c
+lb cw16 cw3 cw1 cw12
+r s cb s s.
+802.1Q VLAN Tag Format \fR (cf. IEEE Std 802.1Q)
+Bits;16;3;1;12
+Field;TPID;PCP;DEI;VID
+T{
+Tag Protocol ID
+.br
+\fR(always 0x8100)
+T};T{
+Tag Control Information
+.br
+.ce 1
+(configurable)
+T}
+.TE
+
+
+The IEEE 802.1X specification states that EAPOL packets may be encapsulated
+(contained) within \(dqpriority tagged\(dq Ethernet frames. In this special use
+case of VLAN tags, the VID and DEI fields in the tag are set to 0, and only the
+three priority bits in the PCP field are meaningful. The value of the PCP field,
+0 to 7, indicates the priority of the frame.
+
+As the 802.1X specification also states that both priority tagged and untagged
+EAPOL traffic should be understood and treated equally, most users will not need
+to define any of these options. For the sake of flexibility,
+.B peapod
+allows the 802.1Q Tag Control Information to be manipulated in proxied EAPOL
+traffic. This accounts for the possibility of misconfigured networks that, for
+example, expect EAPOL authentication to occur on a VLAN (with a specific VID).
+
+.TP
+.B priority
+.nf
+.BI "priority " number ;
+.fi
+
+Set the Priority Code Point (PCP) field to a number from 0 to 7.
+
+.TP
+.B drop\-eligible
+.nf
+.BI "drop\-eligible " number ;
+.fi
+
+Set the Drop Eligible Indicator (DEI) bit to 0 (off) or 1 (on).
+
+The meaning and function of this field has changed in recent versions of the
+802.1Q standard. Practically never needed in any case.
+
+.TP
+.B id
+.nf
+.BI "id " number ;
+.fi
+
+Set the VLAN Identifier (VID) field to a number from 0 to 4094.
+
+
+.SH TYPES
+
+.SS "type keywords"
+Below are the
+.I type
+keywords that may be used in
+.B exec
+and
+.B filter
+option definitions, and the corresponding EAPOL Packet Types/EAP Codes.
+
+.nf
+.TS
+allbox left tab(;);
+cb s s
+lb lb lb
+l l lb.
+EAPOL Packet Types \fR (cf. IEEE Std 802.1X\-2010)
+Type;Description;Keyword
+T{
+0
+.br
+1
+.br
+2
+.br
+3
+.br
+4
+.br
+5
+.br
+6
+.br
+7
+.br
+8
+T};T{
+.ll 30
+EAPOL\-EAP
+.br
+EAPOL\-Start
+.br
+EAPOL\-Logoff
+.br
+EAPOL\-Key
+.br
+EAPOL\-Encapsulated\-ASF\-Alert
+.br
+EAPOL\-MKA
+.br
+EAPOL\-Announcement (Generic)
+.br
+EAPOL\-Announcement (Specific)
+.br
+EAPOL\-Announcement\-Req
+T};T{
+.ll 25
+eap
+.br
+start
+.br
+logoff
+.br
+key
+.br
+encapsulated\-asf\-alert
+.br
+mka
+.br
+announcement\-generic
+.br
+announcement\-specific
+.br
+announcement\-req
+T}
+.TE
+.TS
+allbox left tab(;);
+cb s s
+lb lb lb
+l l lb.
+EAP Codes \fR (cf. IETF RFC 2284)
+Code;Description;Keyword
+T{
+1
+.br
+2
+.br
+3
+.br
+4
+T};T{
+.ll 20
+EAP\-Request
+.br
+EAP\-Response
+.br
+EAP\-Success
+.br
+EAP\-Failure
+T};T{
+.ll 20
+request
+.br
+response
+.br
+success
+.br
+failure
+T}
+.TE
+.fi
+
+
+Additionally, the keyword
+.B all
+means the same as all nine keywords corresponding to EAPOL Packet Types; i.e.
+the following:
+
+.RS
+.nf
+exec eap "/path/to/script.sh";
+exec start "/path/to/script.sh";
+\[u2026]
+exec announcement\-req "/path/to/script.sh";
+filter eap, start, \[u2026], announcement\-req;
+.fi
+.RE
+
+is equivalent to:
+
+.RS
+.nf
+exec all "/path/to/script.sh";
+filter all;
+.fi
+.RE
+
+
+.SS "Packet Type vs. Code"
+As to the distinction between EAPOL Packet Types and EAP Codes, it is important
+to consider that EAP came first. EAPOL is an extension of the earlier EAP
+protocol that enables EAP to function over LANs.
+
+EAPOL packets have a Packet Type field to distinguish between different sorts of
+EAPOL packets. A Packet Type of 0, or EAPOL\-EAP, indicates that an EAPOL packet
+encapsulates (contains) an EAP packet. Other Packet Types are reserved for
+various EAPOL control messages.
+
+In turn, EAP packets themselves have a Code field to distinguish between
+different sorts of EAP packets.
+
+
+.SH SCRIPTS
+
+As explained in
+.RB \(dq OPTIONS \(dq,
+the
+.B script
+option may be defined in an
+.B ingress
+or
+.B egress
+stanza and has the form:
+
+.RS
+.nf
+.BI "exec " "type script\-path" ;
+.fi
+.RE
+
+.I script\-path
+is an absolute and canonical path to a executable binary or script (a text file
+with
+.RB \(dq #!interpreter\-path \(dq
+as its first line). Script paths are validated at startup to ensure that
+.BR peapod 's
+effective user ID has execute permissions on them.
+
+Scripts run in a sanitized environment, but with a number of environment
+variables set. Depending upon why and when a script is being executed, the
+environment includes information such as the type of EAPOL packet being proxied,
+where the packet is in the program's control flow (ingress or egress phase), the
+interface on which the packet was received or is about to be sent, and the raw
+packet itself (Base64\-encoded). Scripts can therefore do quite a few useful
+things, from logging failed authentications to saving packets to
+.I .pcap
+files.
+
+Given that scripts run in the background (without an attached terminal),
+.B peapod
+reports nonzero script exit codes to facilitate debugging. It is also possible
+for scripts to write their own logs, of course.
+
+.SS "Environment variables always available to scripts"
+.TP
+.B PKT_TIME
+Packet receipt timestamp.
+
+Format: unixtime.microsecs
+
+.TP
+.BR PKT_DEST ", " PKT_SOURCE
+Destination and source MAC addresses.
+
+Format: six colon\-delimited hexdigit pairs
+
+.TP
+.BR PKT_TYPE ", " PKT_TYPE_DESC
+EAPOL Packet Type and description.
+
+Format: number 0 to 9, text description
+
+.TP
+.BR PKT_IFACE_ORIG ", " PKT_IFACE_ORIG_MTU
+Ingress interface (interface on which packet was originally received) and
+ingress interface MTU.
+
+.TP
+.BR PKT_ORIG ", " PKT_LENGTH_ORIG
+Base64\-encoded raw packet and its length in bytes as received on ingress
+interface.
+
+.TP
+.BR PKT_IFACE ", " PKT_IFACE_MTU
+Current interface and current interface MTU.
+
+Values same as
+.B \[u2026]_ORIG
+in ingress phase; will differ in egress phase (i.e. current interface is an
+egress interface).
+
+.TP
+.BR PKT ", " PKT_LENGTH
+Base64\-encoded raw packet and its length in bytes.
+
+Values same as
+.B \[u2026]_ORIG
+in ingress phase; may differ in egress phase if
+.B dot1q
+option is defined on current interface (i.e. current interface is configured to
+add a missing 802.1Q VLAN tag, or remove an existing one).
+
+.SS "Environment variables conditionally available to scripts"
+.TP
+.BR PKT_CODE ", " PKT_CODE_DESC ", " PKT_ID
+EAP Code, description, and EAP Identifier.
+
+Available if the EAPOL packet encapsulates (contains) an EAP packet; EAPOL
+Packet Type
+.RB ( "PKT_TYPE" )
+is 0.
+
+Format: number 1 to 4, text description, number 1 to 255
+
+.TP
+.BR PKT_REQRESP_TYPE ", " PKT_REQRESP_DESC
+EAP\-Request/EAP\-Response Type and description.
+
+Available if the EAPOL packet encapsulates an EAP\-Request or an EAP\-Response;
+EAPOL Packet Type
+.RB ( "PKT_TYPE" )
+is 0 and EAP Code
+.RB ( "PKT_CODE" )
+is 1 or 2.
+
+Format: number 1 to 255, text description
+
+.TP
+.B PKT_DOT1Q_TCI_ORIG
+Raw 802.1Q VLAN Tag Control Information as received on ingress interface.
+
+Available if packet was received tagged.
+
+Format: four hexdigits
+
+.TP
+.B PKT_DOT1Q_TCI
+Current raw 802.1Q VLAN TCI.
+
+Available in ingress phase: if packet was received tagged, value same as
+.BR \[u2026]_ORIG ;
+in egress phase: if packet is about to be sent tagged on current interface.
+
+Format: four hexdigits
+
+.PP
+See also the example script
+.I env.sh
+to help determine the exact environment variables available to scripts in
+different circumstances.
+
+
+.SH EXAMPLES
+
+All example config files and scripts mentioned in this section are included in
+.BR peapod 's
+documentation in
+.IR "/usr/share/doc/peapod/examples" ,
+as well as in the
+.I "doc/examples"
+subdirectory of the program sources.
+
+.SS minimum.conf
+Silently proxy all EAPOL packets between
+.B eth0
+and
+.BR eth1 .
+
+.RS
+.nf
+iface eth0;
+iface eth1;
+.fi
+.RE
+
+.SS portmirror.conf
+Packets received on a configured interface are proxied to all other configured
+interfaces, so creating a port mirror for the traffic between two interfaces is
+as easy as adding a third. We also ensure that any packets that somehow enter on
+.B eth2
+are not proxied to
+.B eth0
+and
+.BR eth1 .
+
+.RS
+.nf
+iface eth0;
+iface eth1;
+
+# External protocol analyzer (e.g. a laptop running WireShark)
+iface eth2 {
+    ingress {
+    # Do not proxy any EAPOL packets received on eth2
+    filter all;
+    };
+};
+.fi
+.RE
+
+.SS macspoof.conf
+Impersonate a supplicant from the network's point of view. Connectivity on
+.B eth0
+may be achieved by static IP, gateway, and DHCP assignment.
+
+.RS
+.nf
+# Network with an EAPOL authenticator
+iface eth0 {
+	# Manually spoof MAC address of supplicant
+	set\-mac xx:xx:xx:xx:xx:xx;
+
+	# Alternative: learn supplicant's MAC address from the first
+	# EAPOL packet it sends, then clone the address to eth0
+	# set\-mac\-from eth1;
+};
+
+# Supplicant behind proxy
+iface eth1;
+.fi
+.RE
+
+.SS pcap.conf
+Save all EAPOL packets proxied between
+.B eth0
+and
+.B eth1
+to a
+.I .pcap
+file.
+
+.RS
+.nf
+iface eth0 {
+    ingress {
+        # Runs when any EAPOL packet received on eth0
+        exec all \(dq/path/to/pcap.sh\(dq;
+    };
+};
+
+iface eth1 {
+    ingress {
+        # Runs when any EAPOL packet received on eth1
+        exec all \(dq/path/to/pcap.sh\(dq;
+    };
+};
+.fi
+.RE
+
+.SS advanced.conf
+Demonstrates more advanced usage. Impersonate a supplicant, also inserting
+priority tags into its EAPOL packets (authenticator is priority tagging but
+supplicant isn't; remedy the lack). Run scripts to \(dqborrow\(dq the DHCP
+assignment intended for supplicant and log any failed authentication attempts.
+
+.RS
+.nf
+# Network with an EAPOL authenticator
+iface eth0 {
+    ingress {
+        # Proxy only EAPOL\-EAP (EAP packets) from authenticator
+        filter start, logoff, key, encapsulated\-asf\-alert, mka,
+               announcement\-generic, announcement\-specific,
+               announcement\-req;
+
+        # Runs when EAP\-Success received from authenticator
+        # restartdhcp.sh restarts the system's DHCP client on eth0
+        exec success \(dq/path/to/restartdhcp.sh\(dq;
+
+        # Runs when EAP\-Failure received
+        # exec failure \(dq/path/to/logfailure.sh\(dq;
+    };
+    egress {
+        # Priority tag all packets leaving eth0 with priority 7
+        dot1q {
+            priority 7;
+        };
+    };
+};
+
+# Supplicant behind proxy
+iface eth1 {
+    ingress {
+        # Proxy only EAPOL\-EAP (EAP packets) from supplicant
+        # Equivalent ingress filters defined on both interfaces
+        filter start, logoff, key, encapsulated\-asf\-alert, mka;
+        filter announcement\-generic, announcement\-specific;
+        filter announcement\-req;
+    };
+    egress {
+        # Runs when EAP\-Failure sent to supplicant
+        # logfailure.sh is written so as to ensure that running
+        # it here as an egress script on eth1 is equivalent to
+        # running it above as an ingress script on eth0
+        exec failure \(dq/path/to/logfailure.sh\(dq;
+    };
+};
+.fi
+.RE
+
+
+.SH FILES
+
+.nf
+.I /usr/sbin/peapod
+.I /etc/peapod.conf
+.I /var/log/peapod.log
+.I /var/run/peapod.pid
+.fi
+
+
+.SH "SEE ALSO"
+
+.BR peapod (8)

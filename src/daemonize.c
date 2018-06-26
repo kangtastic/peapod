@@ -147,8 +147,8 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
  *
  * Attempts to do so in the manner described in @p daemon(7) - forks twice, with
  * the parent writing the PID of the second child to a PID file before exiting.
- * The daemon child also adds the PWD environment variable, in case any scripts
- * executed later require it.
+ * The daemon child also adds $PWD to its environment, in case any scripts it
+ * executes require it.
  *
  * @param pidfile Path to PID file
  * @note Exits if unsuccessful
@@ -156,11 +156,6 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
 void daemonize(const char *pidfile)
 {
 	check_pidfile(pidfile);
-
-	if (getppid() == 1) {
-		notice("already daemonized");
-		exit(EXIT_SUCCESS);
-	}
 
 	/* Parent will write PID of (2nd) child and signal write completion. */
 	int pipepc[2];			/* Parent writes, child reads */

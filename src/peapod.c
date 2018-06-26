@@ -1,8 +1,8 @@
 /**
  * @file peapod.c
- * @brief Proxy EAPOL Daemon
+ * @brief Proxy EAP Daemon
  *
- * @mainpage peapod - Proxy EAPOL Daemon
+ * @mainpage peapod - Proxy EAP Daemon
  *
  * @section introsec Introduction
  *
@@ -44,7 +44,7 @@ volatile sig_atomic_t sig_term = 0;
 /** @brief Program usage string */
 static const char usage[] = {
 "\n"
-"%s - Proxy EAPOL Daemon\n"
+"%s - Proxy EAP Daemon\n"
 "\n"
 "Usage: %s [-dtsqnoh] [-vvv] [-p <pidfile>] [-c <conffile>] [-l [<logfile>]]\n"
 "\n"

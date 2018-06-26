@@ -1,50 +1,107 @@
-PROGRAM			= peapod
+# peapod - Proxy EAP Daemon
+
+ifeq (,$(SYSTEMSERVICE))
+PKG_CONFIG		?= $(shell command -v pkg-config > /dev/null && echo pkg-config)
+ifeq (pkg-config,$(PKG_CONFIG))
+SYSTEMCTL		:= $(shell command -v systemctl > /dev/null && echo systemctl)
+ifeq (systemctl,$(SYSTEMCTL))
+SYSTEMSERVICE		?= $(shell $(PKG_CONFIG) systemd --variable=systemdsystemunitdir)
+SYSTEMSERVICE		:= $(SYSTEMSERVICE)
+endif
+endif
+endif
+
+ifeq (,$(SYSTEMSERVICE))
+$(error "Cannot determine systemd system unit .service file directory.")
+endif
+
+PREFIX			?= /usr
+SBIN			= $(PREFIX)/sbin
+SHARE			= $(PREFIX)/share
 
 CC			= gcc
 CFLAGS			= -I$(IDIR) -Wall -Wextra -pedantic --std=gnu11 -O3
 
+YACC			= bison
+LEX			= flex
+
+BDIR			= bin
+DDIR			= doc
+HDIR			= html
 IDIR			= include
 ODIR			= obj
 SDIR			= src
 
-PARSER			= parser
-LEXER			= lexer
+_OBJS			= parser.o lexer.o \
+			  args.o b64enc.o daemonize.o iface.o log.o \
+			  packet.o peapod.o process.o proxy.o
+OBJS			= $(patsubst %,$(ODIR)/%,$(_OBJS))
 
-_IDEPS			= args.h b64enc.h defaults.h daemonize.h iface.h \
-			  includes.h log.h packet.h parser.h peapod.h \
-			  process.h proxy.h
-IDEPS			= $(patsubst %,$(IDIR)/%,$(_IDEPS))
+.PHONY:			all debug
+all:			peapod doc service
 
-_SDEPS			= $(PARSER).c $(LEXER).c
-SDEPS			= $(patsubst %,$(SDIR)/%,$(_DEPS))
+debug:			CFLAGS := $(filter-out -O3,$(CFLAGS)) -g
+debug:			cleanall peapod
 
-DEPS			= $(IDEPS) $(SDEPS)
+.PHONY:			doc
+doc:			$(BDIR)/peapod.8.gz $(BDIR)/peapod.conf.5.gz $(BDIR)/examples
 
-_OBJ			= peapod.o log.o args.o $(PARSER).o $(LEXER).o \
-			  b64enc.o daemonize.o iface.o packet.o process.o \
-			  proxy.o
-OBJ			= $(patsubst %,$(ODIR)/%,$(_OBJ))
+$(BDIR)/peapod.8.gz:	$(DDIR)/peapod.8
+			gzip < $(DDIR)/peapod.8 > $(BDIR)/peapod.8.gz
+$(BDIR)/peapod.conf.5.gz: $(DDIR)/peapod.conf.5
+			gzip < $(DDIR)/peapod.conf.5 > $(BDIR)/peapod.conf.5.gz
+$(BDIR)/examples:	$(DDIR)/examples
+			cp -r $(DDIR)/examples $(BDIR)/examples
 
+html:			cleanhtml
+			doxygen Doxyfile
 
+.PHONY:			service
+service:		$(BDIR)/peapod.service
+
+$(BDIR)/peapod.service:	peapod.service.in
+			sed "s|__SBIN__|$(SBIN)|" peapod.service.in > $(BDIR)/peapod.service
+
+.PHONY:			peapod
+peapod:			$(ODIR) $(BDIR) $(BDIR)/peapod
+
+$(BDIR)/peapod:		$(OBJS)
+			$(CC) -o $@ $^ $(CFLAGS)
+$(ODIR):
+			mkdir -p $(ODIR)
+$(BDIR):
+			mkdir -p $(BDIR)
 $(ODIR)/%.o:		$(SDIR)/%.c
 			$(CC) -c -o $@ $< $(CFLAGS)
+$(SDIR)/parser.c:	$(SDIR)/parser.y
+			$(YACC) --defines=$(IDIR)/parser.yy.h --output=$(SDIR)/parser.c $(SDIR)/parser.y
+$(SDIR)/lexer.c:	$(SDIR)/lexer.l
+			$(LEX) --outfile=$(SDIR)/lexer.c $(SDIR)/lexer.l
 
-peapod:			$(OBJ)
-			$(CC) -o $@ $^ $(CFLAGS)
-
-all:			$(PROGRAM)
-
-$(SDIR)/$(PARSER).c:	$(SDIR)/$(PARSER).y
-			bison --defines=$(IDIR)/$(PARSER).yy.h \
-				--output=$(SDIR)/$(PARSER).c \
-				$(SDIR)/$(PARSER).y
-
-$(SDIR)/$(LEXER).c:	$(SDIR)/$(LEXER).l
-			flex --outfile=$(SDIR)/$(LEXER).c $(SDIR)/$(LEXER).l
-
-debug:			CFLAGS += -g
-debug:			clean $(PROGRAM)
+.PHONY:			clean cleanall cleanhtml
+cleanall:		clean cleanhtml
 
 clean:
-			rm -f $(OBJ) $(IDIR)/$(PARSER).yy.h $(SDIR)/$(PARSER).c \
-				$(SDIR)/$(LEXER).c $(PROGRAM)
+			rm -rf $(ODIR) $(BDIR)
+			rm -f $(IDIR)/parser.yy.h $(SDIR)/parser.c $(SDIR)/lexer.c
+cleanhtml:
+			rm -rf $(HDIR)
+
+.PHONY:			install installpeapod installdoc installservice \
+			uninstall
+install:		installpeapod installdoc installservice
+
+installpeapod:		peapod
+			install -D -m 755 $(BDIR)/peapod $(DESTDIR)$(SBIN)/peapod
+installdoc:		doc
+			install -D -m 644 $(BDIR)/peapod.8.gz $(DESTDIR)$(SHARE)/man/man8/peapod.8.gz
+			install -D -m 644 $(BDIR)/peapod.conf.5.gz $(DESTDIR)$(SHARE)/man/man5/peapod.conf.5.gz
+			install -D -m 644 -t $(DESTDIR)$(SHARE)/peapod/examples $(wildcard $(BDIR)/examples/*)
+installservice:		service
+			install -D -m 644 $(BDIR)/peapod.service $(DESTDIR)$(SYSTEMSERVICE)/peapod.service
+
+uninstall:
+			rm -f $(DESTDIR)$(SBIN)/peapod
+			rm -f $(DESTDIR)$(SHARE)/man/man8/peapod.8.gz
+			rm -f $(DESTDIR)$(SHARE)/man/man5/peapod.conf.5.gz
+			rm -rf $(DESTDIR)$(SHARE)/peapod

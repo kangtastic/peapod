@@ -2,10 +2,8 @@
 # Filename: pcap.sh
 # Description: Example script for peapod - Proxy EAP Daemon
 #
-# When run by peapod as it proxies an EAPOL message, write the Ethernet
-# frame containing the message, as originally received, to a .pcap file.
-#
-# See env.sh for more on environment variables available to scripts.
+# When run by peapod as it proxies an EAPOL packet, write the Ethernet
+# frame containing the packet, as originally received, to a .pcap file.
 #
 # Requires the xxd(1) utility.
 
