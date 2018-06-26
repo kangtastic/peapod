@@ -106,7 +106,7 @@ static void script(struct peapod_packet packet, char *script)
 	setenv("PKT_ORIG", b64buf, 1);
 	free(b64buf);
 
-	setenv("PKT_IFACE_ORIG", packet.name_orig, 1);
+	setenv("PKT_IFACE_ORIG", packet.iface_orig->name, 1);
 
 	snprintf(buf, sizeof(buf), "%d", packet.iface_orig->mtu);
 	setenv("PKT_IFACE_MTU_ORIG", buf, 1);
@@ -124,7 +124,7 @@ static void script(struct peapod_packet packet, char *script)
 	setenv("PKT", b64buf, 1);
 	free(b64buf);
 
-	setenv("PKT_IFACE", packet.name, 1);
+	setenv("PKT_IFACE", packet.iface->name, 1);
 
 	snprintf(buf, sizeof(buf), "%d", packet.iface->mtu);
 	setenv("PKT_IFACE_MTU", buf, 1);
@@ -187,10 +187,10 @@ int process_filter(struct peapod_packet packet)
 	/* Log filter application */
 	if (phase == PROCESS_INGRESS) {
 		info("filtered %s%s received on '%s'",
-		     prefix, desc, packet.name_orig);
+		     prefix, desc, packet.iface_orig->name);
 	} else {
 		info("filtered %s%s received on '%s' from being sent on '%s'",
-		     prefix, desc, packet.name_orig, packet.name);
+		     prefix, desc, packet.iface_orig->name, packet.iface->name);
 	}
 
 	return 1;
@@ -246,15 +246,16 @@ void process_script(struct peapod_packet packet)
 	if (path == NULL)
 		return;
 
-	/* Log script execution */
+	/* Log script execution; don't use a logging macro */
 	if (phase == PROCESS_INGRESS)
 		log_msg(args.quiet == 1 ? LOG_INFO : LOG_NOTICE, NULL, 0,
 			"received %s%s on '%s'; executing '%s'",
-			prefix, desc, packet.name, path);
+			prefix, desc, packet.iface->name, path);
 	else if (phase == PROCESS_EGRESS)
 		log_msg(args.quiet == 1 ? LOG_INFO : LOG_NOTICE, NULL, 0,
 			"sending %s%s from '%s' on '%s'; executing '%s'",
-			prefix, desc, packet.name_orig, packet.name, path);
+			prefix, desc, packet.iface_orig->name,
+			packet.iface->name, path);
 	else
 		return;
 

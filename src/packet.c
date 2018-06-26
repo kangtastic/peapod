@@ -128,8 +128,8 @@ static void decode(struct peapod_packet packet)
 
 	/* "recv 1024 bytes on 'eth0': {source MAC} > {dest MAC}" */
 	l = snprintf(buf, sizeof(buf), "%s %ld bytes on '%s'",
-		     packet.name == packet.name_orig ? "recv" : "send",
-		     packet.len, packet.name);
+		     packet.iface->name == packet.iface_orig->name ?
+		     "recv" : "send", packet.len, packet.iface->name);
 	l += snprintf(buf + l, sizeof(buf) - l, ": %s",
 		      iface_strmac(packet.h_source));
 	l += snprintf(buf + l, sizeof(buf) - l, " > %s",
@@ -341,7 +341,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 	Didn't work - failed outright, strerror(errno) gives "Message too long":
 		sendmsg(2) and writev(2) with a 1518-byte iovec
 
-	/!\ OMG /!\ Did work /!\ WTF /!\:
+	/!\ OMG /!\ WORKS /!\ WTF /!\:
 		write(2) with the 802.1Q tag at bytes 12:15, 1518 total, e.g.
 
 		int mtu = 1500;
@@ -356,11 +356,11 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 		ssize_t len = write(iface->skt, buf, buf_size);	// len == 1518!
 
 		Excellent! Looks like regular old write() is the way to go.
+		TODO: Revisit this topic if/when we move to using PACKET_TX_RING.
 
 	P.S. Didn't work: write(2) with QinQ at bytes 12:19. >;]
 */
 	packet.iface = iface;
-	packet.name = iface->name;
 
 	if (iface->egress != NULL && iface->egress->tci != NULL) {
 		struct tci_t *iface_tci = iface->egress->tci;
@@ -400,7 +400,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 	}
 	else if (len != packet.len) {
 		crit("sent %d bytes (expected %d), interface '%s'; "
-		     "did this originally enter on a higher MTU interface?",
+		     "was packet received on a higher MTU interface?",
 		     len, packet.len);
 		return -1;
 	}
@@ -408,7 +408,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 	decode(packet);
 	dump(packet);
 
-	++iface->send_ctr;
+	++iface->send_ctr;	/* Send counters are currently unused */
 
 	return 0;
 }
@@ -440,7 +440,7 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 3;
 
-	// ret.len = recvmsg(iface->skt, &msg, MSG_TRUNC);	DO NOT WANT
+	// ret.len = recvmsg(iface->skt, &msg, MSG_TRUNC);	SRY DO NOT WANT
 	ret.len = recvmsg(iface->skt, &msg, 0);
 
 	if (ret.len == -1) {
@@ -468,9 +468,8 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	}
 
 	ret.iface = iface;
-	ret.name = iface->name;
 	/* We don't actually copy the EAPOL MPDU per interface.
-	   We might need to in the future for PACKET_RX_RING.
+	   We might need to in the future for PACKET_RX_RING/PACKET_TX_RING.
 
 	ret.mpdu = (struct eapol_mpdu *)mpdu_buf;
 
@@ -521,7 +520,6 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 	}
 
 	ret.iface_orig = ret.iface;
-	ret.name_orig = ret.name;
 	ret.len_orig = ret.len;
 	ret.vlan_valid_orig = ret.vlan_valid;
 	ret.tci_orig = ret.tci;

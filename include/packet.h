@@ -145,8 +145,6 @@ struct peapod_packet {
 	struct timeval tv;		/**< @brief Packet timestamp */
 	struct iface_t *iface;		/**< @brief Current interface */
 	struct iface_t *iface_orig;	/**< @brief Interface on which packet was originally received */
-	char *name;			/**< @brief Name of current interface */
-	char *name_orig;		/**< @brief Name of original interface */
 	ssize_t len;			/**< @brief Current length */
 	ssize_t len_orig;		/**< @brief Original length */
 	uint8_t h_dest[ETH_ALEN];	/**< @brief Destination MAC address */

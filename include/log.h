@@ -8,9 +8,9 @@
 #include <syslog.h>
 
 /**
- * @name A new log level less severe than @p LOG_DEBUG
+ * @name A new log level less severe/more verbose than LOG_DEBUG
  * The syslog levels range from @p LOG_EMERG to @p LOG_DEBUG (0 to 7).
- * Messages at this level aren't even emitted to syslog.
+ * Messages at this new level aren't even emitted to syslog.
  * @{
  */
 #define LOG_DEBUGLOW		8
@@ -20,9 +20,9 @@
  * @name Function-like stderr output macros
  * Usage is like @p printf(3). Used during early program startup to print to
  * @p stderr, before logging is even fully initialized.
- * - @p ceerr() adds @p strerror(errno) as the last argument,
- *   i.e. @code ceerr("Error %d: %s", errno); @endcode is equivalent to
- *   @code cerr("Error %d: %s", errno, strerror(errno)); @endcode
+ * @p ceerr() adds @p strerror(errno) as the last argument,
+ * i.e. @code ceerr("Error %d: %s", errno); @endcode is equivalent to
+ * @code cerr("Error %d: %s", errno, strerror(errno)); @endcode
  * @{
  */
 #define cerr(...)		fprintf(stderr, __VA_ARGS__)
