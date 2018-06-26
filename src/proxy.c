@@ -146,6 +146,7 @@ void proxy(struct iface_t *ifaces)
 	struct peapod_packet pkt;
 
 	while (1) {
+		/* Begin ingress phase */
 		if (num_ifaces != rdy_ifaces)
 			ecritdie("some interfaces are not ready");
 
@@ -156,7 +157,7 @@ void proxy(struct iface_t *ifaces)
 				ecritdie("cannot wait for epoll events: %s");
 		}
 
-		iface = event.data.ptr;
+		iface = event.data.ptr;		/* Received an EAPOL packet */
 
 		if (!(event.events & EPOLLIN)) {
 			/* Bringing down an interface invalidates its sockets */
@@ -213,18 +214,17 @@ void proxy(struct iface_t *ifaces)
 			}
 		}
 
-		if (iface->ingress != NULL && iface->ingress->action != NULL)
-			process_script(pkt, iface->ingress->action,
-				       PROCESS_INGRESS);
+		process_script(pkt);
 
-		if (process_filter(pkt, iface, PROCESS_INGRESS) == 1)
+		if (process_filter(pkt) == 1)
 			continue;
 
+		/* Begin egress phase */
 		for (struct iface_t *i = ifaces; i != NULL; i = i->next) {
 			if (i == iface)
 				continue;
 
-			if (process_filter(pkt, i, PROCESS_EGRESS) == 1)
+			if (process_filter(pkt) == 1)
 				continue;		/* "approximates" ;) */
 
 			/* Hand off 802.1Q tag editing and egress script

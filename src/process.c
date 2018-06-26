@@ -15,52 +15,12 @@
 #include "peapod.h"
 #include "process.h"
 
-static int filter(struct filter_t *filter, char *name_orig,
-		  char *name, __u8 type, __u8 code);
 static void script(struct peapod_packet packet, char *script);
 
 extern struct args_t args;
 extern char **environ;
 extern uint8_t *mpdu_buf;
 extern int mpdu_buf_size;
-
-/**
- * @brief Determine if an EAPOL packet should be filtered (dropped)
- * @param filter Pointer to a <tt>struct filter_t</tt> containing filter
- *               bitmasks for EAPOL Packet Types and EAP Codes
- * @param name_orig Name of ingress interface, or @p NULL
- * @param name If @p name_orig is @p NULL, name of ingress interface;
- *             otherwise, name of egress interface
- * @param type EAPOL Packet Type
- * @param code EAP Code
- * @return 1 if the EAPOL packet should be filtered, or 0 if not
- */
-static int filter(struct filter_t *filter, char *name_orig,
-		  char *name, __u8 type, __u8 code)
-{
-	if (filter->type & (uint16_t)(1 << type)) {
-		if (name_orig == NULL)
-			info("filtered %s packet entering on '%s'",
-			     packet_decode(type, eapol_types), name);
-		else
-			info("filtered %s packet from '%s' leaving on '%s'",
-			     packet_decode(type, eapol_types), name_orig, name);
-
-		return 1;
-	}
-
-	if (type == EAPOL_EAP && filter->code & (uint8_t)(1 << code)) {
-		if (name_orig == NULL)
-			info("filtered EAP-%s entering on '%s'",
-			     packet_decode(code, eap_codes), name);
-		else
-			info("filtered EAP-%s from '%s' leaving on '%s'",
-			     packet_decode(code, eap_codes), name_orig, name);
-
-		return 1;
-	}
-	return 0;
-}
 
 /**
  * @brief Execute a script
@@ -106,6 +66,7 @@ static void script(struct peapod_packet packet, char *script)
 	/* Set up a bunch of environment variables for the script to use.
 	 * TODO: Allocate and fill a new **environ to pass to execve(2)
 	 *       as its *envp[] parameter instead of using setenv(3).
+	 *       setenv(3) is, however, the lazier way ;)
 	 */
 	char buf[128] = { "" };
 
@@ -179,69 +140,98 @@ static void script(struct peapod_packet packet, char *script)
 }
 
 /**
- * @brief A wrapper for @p filter()
+ * @brief Determine if an EAPOL packet should be filtered (dropped)
  *
- * Calls @p filter() with the appropriate parameters extracted from @p packet
- * and @p iface.
+ * @p packet should contain enough information to determine whether an ingress
+ * or egress filter should be applied.
  *
  * @param packet A <tt>struct peapod_packet</tt> representing an EAPOL packet
- * @param iface Pointer to a <tt>struct iface_t</tt> representing an interface
- * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS
- * @return The result of the underlying call to @p filter() if there is an
- *         ingress or egress filter mask configured on @p iface, or 0 otherwise
+ * @return 1 if the EAPOL packet should be filtered, or 0 if not
  */
-int process_filter(struct peapod_packet packet,
-		   struct iface_t *iface, uint8_t phase)
+int process_filter(struct peapod_packet packet)
 {
-	if (phase == PROCESS_INGRESS && iface->ingress != NULL &&
-	    iface->ingress->filter != NULL)
-		return filter(iface->ingress->filter,
-			      NULL, packet.name,
-			      packet.type, packet.code);
-	else if (phase == PROCESS_EGRESS && iface->egress != NULL &&
-		 iface->egress->filter != NULL)
-		return filter(iface->egress->filter,
-			      packet.name_orig, packet.name,
-			      packet.type, packet.code);
+	static uint8_t phase;
+	static struct filter_t *filter;
+	static char *prefix, *desc;
 
-	return 0;
+	/* Basic sanity checks */
+	if (packet.iface_orig == packet.iface &&
+	    packet.iface->ingress != NULL &&
+	    packet.iface->ingress->filter != NULL) {
+		phase = PROCESS_INGRESS;
+		filter = packet.iface->ingress->filter;
+	} else if (packet.iface_orig != packet.iface &&
+		   packet.iface->egress != NULL &&
+		   packet.iface->egress->filter != NULL) {
+		phase = PROCESS_EGRESS;
+		filter = packet.iface->egress->filter;
+	} else {
+		return 0;
+	}
+
+	desc = NULL;
+
+	/* Build log message */
+	if (filter->type & (uint16_t)(1 << packet.type)) {
+		prefix = "";
+		desc = packet_decode(packet.type, eapol_types);
+	} else if (packet.type == EAPOL_EAP &&
+		   filter->code & (uint8_t)(1 << packet.code)) {
+		prefix = "EAP-";
+		desc = packet_decode(packet.code, eap_codes);
+	}
+
+	if (desc == NULL)
+		return 0;
+
+	/* Log filter application */
+	if (phase == PROCESS_INGRESS) {
+		info("filtered %s%s received on '%s'",
+		     prefix, desc, packet.name_orig);
+	} else {
+		info("filtered %s%s received on '%s' from being sent on '%s'",
+		     prefix, desc, packet.name_orig, packet.name);
+	}
+
+	return 1;
 }
 
 /**
  * @brief A wrapper for @p script()
  *
- * Calls @p script() with the appropriate parameters extracted from @p packet
- * and @p action.
+ * @p packet should contain enough information to determine whether an ingress
+ * or egress script should be executed, upon which @p script() is called with
+ * the appropriate parameters extracted from @p packet.
  *
  * @param packet A <tt>struct peapod_packet</tt> representing an EAPOL packet
- * @param action Pointer to a <tt>struct action_t</tt> structure containing
- *               two arrays of script paths (i.e. C strings)
- * @param phase May be set to @p PROCESS_INGRESS or @p PROCESS_EGRESS
- * @note The first array in an @p action_t contains paths to scripts to be
- *       executed if the EAPOL packet represented by @p packet is of one of the
- *       nine defined EAPOL Packet Types. <br />
- *       Similarly, the second array contains scripts to be executed if the
- *       EAPOL packet is of Type EAPOL-EAP and the EAP packet it encapsulates is
- *       of one of the four defined EAP Codes.
  */
-void process_script(struct peapod_packet packet,
-		    struct action_t *action, uint8_t phase)
+void process_script(struct peapod_packet packet)
 {
-	char *prefix = NULL;		/* "" or "EAP-" */
-	char *desc = NULL;		/* see struct decode_t */
-	char *path = NULL;
+	static uint8_t phase;
+	static struct action_t *action;
+	static char *prefix, *desc, *path;
 
-	/* Sample outputs:
-	 * "received EAPOL-EAP on 'eth1'; executing '...'"
-	 * "sending EAP-Start from 'eth0' on 'eth1'; executing '...'"
-	 */
-	char *fmt_ingress = "received %s%s on '%%s'; executing '%%s'";
-	char *fmt_egress = "sending %s%s from '%s' on '%%s'; executing '%%s'";
+	/* Basic sanity checks */
+	if (packet.iface_orig == packet.iface &&
+	    packet.iface->ingress != NULL &&
+	    packet.iface->ingress->action != NULL) {
+		phase = PROCESS_INGRESS;
+		action = packet.iface->ingress->action;
+	} else if (packet.iface_orig != packet.iface &&
+		   packet.iface->egress != NULL &&
+		   packet.iface->egress->action != NULL) {
+		phase = PROCESS_EGRESS;
+		action = packet.iface->egress->action;
+	} else {
+		return;
+	}
 
-	char buf[128] = { "" };
+	path = NULL;
 
+	/* Build log message */
 	if (packet.type <= EAPOL_ANNOUNCEMENT_REQ &&
 	    action->type[packet.type] != NULL) {
+		prefix = "";
 		desc = packet_decode(packet.type, eapol_types);
 		path = action->type[packet.type];
 	} else if (packet.type == EAPOL_EAP &&
@@ -256,18 +246,17 @@ void process_script(struct peapod_packet packet,
 	if (path == NULL)
 		return;
 
+	/* Log script execution */
 	if (phase == PROCESS_INGRESS)
-		snprintf(buf, sizeof(buf), fmt_ingress, prefix, desc);
+		log_msg(args.quiet == 1 ? LOG_INFO : LOG_NOTICE, NULL, 0,
+			"received %s%s on '%s'; executing '%s'",
+			prefix, desc, packet.name, path);
 	else if (phase == PROCESS_EGRESS)
-		snprintf(buf, sizeof(buf), fmt_egress, prefix, desc,
-			 packet.name_orig);
+		log_msg(args.quiet == 1 ? LOG_INFO : LOG_NOTICE, NULL, 0,
+			"sending %s%s from '%s' on '%s'; executing '%s'",
+			prefix, desc, packet.name_orig, packet.name, path);
 	else
 		return;
-
-	if (args.quiet == 1)
-		info(buf, packet.name, path);
-	else
-		notice(buf, packet.name, path);
 
 	script(packet, path);
 }

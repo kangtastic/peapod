@@ -744,7 +744,7 @@ promiscuousdef	: T_PROMISCUOUS ';'
 
 setmacdef	: T_SET_MAC MAC ';'
 		{
-			if (($2[0] & (1 << 0)) != 0) {
+			if ($2[0] & (1 << 0)) {
 				err("'%s' is a multicast MAC address (line %d)",
 				    iface_strmac($2), linenum);
 				abort_parser();

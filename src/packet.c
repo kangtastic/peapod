@@ -121,8 +121,8 @@ static void dump(struct peapod_packet packet)
  */
 static void decode(struct peapod_packet packet)
 {
-	char buf[256] = { "" };
-	int l;
+	static char buf[256] = { "" };
+	static int l;
 
 	struct eapol_mpdu *mpdu = (struct eapol_mpdu *)mpdu_buf;
 
@@ -321,7 +321,7 @@ char* packet_decode(uint8_t val, const struct decode_t *decode)
 /**
  * @brief Send an EAPOL packet on a network interface
  *
- * May execute an egress script if @p iface->egress->action is not @p NULL.
+ * May execute an egress script.
  *
  * @param packet A <tt>struct peapod_packet</tt> representing an EAPOL packet
  * @param iface Pointer to a <tt>struct iface_t</tt> representing an interface
@@ -381,6 +381,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 		}
 	}
 
+	/* packet_buf() sets up the Ethernet header with 802.1Q edits */
 	uint8_t *start = packet_buf(packet, 0);
 
 	if (packet.vlan_valid == 1 && packet.vlan_valid_orig == 0)
@@ -389,9 +390,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 		packet.len -= sizeof(uint32_t);
 
 	/* Execute script on egress */
-	if (iface->egress != NULL && iface->egress->action != NULL)
-		process_script(packet, iface->egress->action,
-			       PROCESS_EGRESS);
+	process_script(packet);
 
 	ssize_t len = write(iface->skt, start, packet.len);
 
