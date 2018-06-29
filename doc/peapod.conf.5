@@ -633,23 +633,26 @@ Current raw 802.1Q VLAN TCI.
 
 Available in ingress phase: if packet was received tagged, value same as
 .BR \[u2026]_ORIG ;
-in egress phase: if packet is about to be sent tagged on current interface.
+in egress phase: if packet is about to be sent tagged on current egress
+interface.
 
 Format: four hexdigits
 
 .PP
+Other environment variables may be available depending on the script interpreter
+or other runtime factors.
+
 See also the example script
 .I env.sh
-to help determine the exact environment variables available to scripts in
-different circumstances.
+to help determine the exact environment variables available to scripts.
 
 
 .SH EXAMPLES
 
 All example config files and scripts mentioned in this section are included in
 .BR peapod 's
-documentation in
-.IR "/usr/share/doc/peapod/examples" ,
+shared resources in
+.IR "/usr/share/peapod/examples" ,
 as well as in the
 .I "doc/examples"
 subdirectory of the program sources.

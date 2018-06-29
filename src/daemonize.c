@@ -26,13 +26,15 @@ extern char **environ;
 static void check_pidfile(const char *pidfile)
 {
 	pid_t pid;
-	FILE* fd = fopen(pidfile, "r");		/* unlocked file */
+	FILE* fd = fopen(pidfile, "r");		/* file isn't locked */
 	if (fd != NULL) {
+		notice("PID file '%s' already exists", pidfile);
 		if (fscanf(fd, "%d", &pid) == 1 && kill(pid, 0) == 0) {
-			notice("already daemonized (PID %d)?", pid);
+			notice("exiting, already daemonized (PID %d) ?", pid);
 			fclose(fd);
 			exit(EXIT_SUCCESS);
 		}
+		notice("existing PID file will be overwritten");
 		fclose(fd);
 	}
 }
@@ -47,20 +49,20 @@ static void check_pidfile(const char *pidfile)
  */
 static char *getpwd(void)
 {
-	char *ret;
-	char *pathmax = malloc(PATH_MAX);
+	char *ret, *buf;
 
-	if (pathmax == NULL)
+	if ((buf = malloc(PATH_MAX)) == NULL)
 		ecritdie("cannot allocate %d (PATH_MAX) bytes: %s", PATH_MAX);
 
-	if (getcwd(pathmax, PATH_MAX) == NULL) {
-		err("cannot find value of environment variable PWD");
+	if (getcwd(buf, PATH_MAX) == NULL) {
+		eerr("cannot find current working directory: %s");
 		return NULL;
 	}
 
-	ret = strdup(pathmax);
-	free(pathmax);
+	if ((ret = strdup(buf)) == NULL)
+		eerr("cannot duplicate current working directory: %s");
 
+	free(buf);
 	return ret;
 }
 
@@ -117,7 +119,7 @@ static pid_t write_pidfile(const char *pidfile, pid_t pid)
 	if (fsync(ifd) == -1)
 		ecritdie("cannot sync PID file: %s");
 
-	notice("wrote PID %d to '%s'", pid, pidfile);
+	info("wrote PID %d to '%s'", pid, pidfile);
 
 	if (lseek(ifd, (off_t) 0, SEEK_SET) == -1)
 		ecritdie("cannot rewind PID file: %s");
@@ -214,7 +216,7 @@ void daemonize(const char *pidfile)
 		ecritdie("cannot read PID back from parent: %s");
 
 	if (pid != dpid)
-		ecritdie("got a PID of %d (not our own) from parent", pid);
+		ecritdie("got PID %d (not our own) from parent", pid);
 
 	close(pipepc[0]);
 	close(pipecp[1]);
@@ -229,11 +231,13 @@ void daemonize(const char *pidfile)
 			 PEAPOD_ROOT_PATH);
 
 	/* For script execution, but there's probably no real reason for this */
-	char *pwd = getpwd();
-	int rv = setenv("PWD", pwd, 1);
-	free(pwd);
-	if (rv == -1)
-		eerr("cannot set environment variable PWD: %s");
+	char *pwd;
+	if ((pwd = getpwd()) != NULL) {
+		if (setenv("PWD", pwd, 1) == -1)
+			eerr("cannot set environment variable PWD to '%s': %s",
+			     pwd);
+		free(pwd);
+	}
 
 	notice("successfully daemonized");
 }

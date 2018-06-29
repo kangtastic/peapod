@@ -165,8 +165,11 @@ returns to the beginning of the ingress phase to listen for more packets.
 
 Example config files and scripts are included in
 .BR peapod 's
-documentation in
-.IR "/usr/share" .
+shared resources in
+.IR "/usr/share/peapod/examples" ,
+as well as in the
+.I "doc/examples"
+subdirectory of the program sources.
 
 See
 .BR peapod.conf (5)
@@ -246,8 +249,8 @@ logged only if at least one
 was provided.
 
 .TP
-.BR "\-n" , " \-\-no\-color"
-Do not colorize console logging output.
+.BR "\-C" , " \-\-color"
+Colorize logging output to console.
 
 .TP
 .BR "\-o", " \-\-oneshot"

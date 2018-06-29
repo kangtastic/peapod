@@ -49,7 +49,7 @@ struct args_t {
 	char *logfile;
 	uint8_t syslog;		/**< @brief Flag: Was @p -s provided? */
 	uint8_t quiet;		/**< @brief Flag: Was @p -q provided? */
-	uint8_t color;		/**< @brief Flag: Was @p -n provided? */
+	uint8_t color;		/**< @brief Flag: Was @p -C provided? */
 	uint8_t oneshot;	/**< @brief Flag: Was @p -o provided? */
 };
 

@@ -17,7 +17,7 @@
 static void print_args(void);
 
 /** @brief An optstring for @p getopt(3) */
-static char *opts = ":hdp:c:tl::svno";
+static char *opts = ":hdp:c:tl::svCo";
 
 /**
  * @brief An array of <tt>struct option</tt> structures for @p getopt_long(3)
@@ -32,7 +32,7 @@ static struct option long_opts[] = {
 	{ "syslog", no_argument, NULL, 's' },
 	/* verbosity is not a long option */
 	{ "quiet-script", no_argument, NULL, 'q' },
-	{ "no-color", no_argument, NULL, 'n' },
+	{ "color", no_argument, NULL, 'C' },
 	{ "oneshot", no_argument, NULL, 'o' },
 	{ NULL, 0, NULL, 0 }
 };
@@ -107,8 +107,6 @@ char *args_canonpath(const char *path, uint8_t create)
 int args_get(int argc, char* argv[]) {
 	memset(&args, 0, sizeof(struct args_t));
 
-	args.color = 1;
-
 	int c;
 	while ((c = getopt_long(argc, argv, opts, long_opts, NULL)) != -1) {
 		switch (c) {
@@ -155,8 +153,8 @@ int args_get(int argc, char* argv[]) {
 		case 'q':
 			args.quiet = 1;
 			break;
-		case 'n':
-			args.color = 0;
+		case 'C':
+			args.color = 1;
 			break;
 		case 'o':
 			args.oneshot = 1;

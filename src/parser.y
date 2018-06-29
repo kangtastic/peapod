@@ -115,7 +115,7 @@ struct iface_t *parse_config(const char *path)
 		abort_parser();
 	}
 
-	notice("loaded config from '%s'", conffile);
+	info("loaded config from '%s'", conffile);
 
 	return ifaces;
 }

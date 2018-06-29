@@ -57,21 +57,21 @@ static void script(struct peapod_packet packet, char *script)
 		return;
 	}
 
+	/* We may now mostly dispense with things like "handling errors" */
 	closelog();			/* Goodbye, syslog... */
 	peapod_close_fds();		/* sockets/epoll/logfile */
 	peapod_redir_stdfds();		/* stdin/out/err */
 
-	char *argv[] = { script, NULL };
-
 	/* Set up a bunch of environment variables for the script to use.
 	 * TODO: Allocate and fill a new **environ to pass to execve(2)
 	 *       as its *envp[] parameter instead of using setenv(3).
-	 *       setenv(3) is, however, the lazier way ;)
+	 *       The latter is, of course, the lazier way ;)
 	 */
+	char *argv[] = { script, NULL };	/* provided to execve(2) */
 	char buf[128] = { "" };
 
-	snprintf(buf, sizeof(buf), "%d.%d",
-		 (int)packet.tv.tv_sec, (int)packet.tv.tv_usec);
+	snprintf(buf, sizeof(buf), "%ld.%ld",
+		 packet.tv.tv_sec, packet.tv.tv_usec);
 	setenv("PKT_TIME", buf, 1);
 
 	setenv("PKT_DEST", iface_strmac(packet.h_dest), 1);
@@ -81,7 +81,7 @@ static void script(struct peapod_packet packet, char *script)
 	setenv("PKT_TYPE", buf, 1);
 	setenv("PKT_TYPE_DESC", packet_decode(packet.type, eapol_types), 1);
 
-	if (packet.type == EAPOL_EAP) {
+	if (packet.type == EAPOL_EAP && packet.code > 0) {
 		struct eapol_mpdu *mpdu = (struct eapol_mpdu *)mpdu_buf;
 		snprintf(buf, sizeof(buf), "%d", packet.code);
 		setenv("PKT_CODE", buf, 1);
@@ -99,7 +99,7 @@ static void script(struct peapod_packet packet, char *script)
 		}
 	}
 
-	snprintf(buf, sizeof(buf), "%d", (int)packet.len_orig);
+	snprintf(buf, sizeof(buf), "%ld", packet.len_orig);
 	setenv("PKT_LENGTH_ORIG", buf, 1);
 
 	char *b64buf = b64enc(packet_buf(packet, 1), packet.len_orig);
@@ -117,7 +117,7 @@ static void script(struct peapod_packet packet, char *script)
 		setenv("PKT_DOT1Q_TCI_ORIG", buf + 4, 1);	/* TCI only */
 	}
 
-	snprintf(buf, sizeof(buf), "%d", (int)packet.len);
+	snprintf(buf, sizeof(buf), "%ld", packet.len);
 	setenv("PKT_LENGTH", buf, 1);
 
 	b64buf = b64enc(packet_buf(packet, 0), packet.len);

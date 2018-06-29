@@ -69,7 +69,7 @@ static const char usage[] = {
 "\n"
 "  -q, --quiet-script   only output script execution notices with at least one -v\n"
 "\n"
-"  -n, --no-color       do not colorize console output\n"
+"  -C, --color          colorize console output\n"
 "\n"
 "  -o, --oneshot        do not restart proxy after certain errors occur\n"
 "\n"
