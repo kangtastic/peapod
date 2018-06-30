@@ -17,9 +17,11 @@ if [ $PKT_CODE -ne 3 ] ||                   # RFC 2284 §2.2
     exit
 fi
 
-# Exit the relevant dhclient instance
-# NOTE: Assumes no spaces exist in its cmdline!
-DHCL_PROC=$(pgrep -a dhclient | grep "$PKT_IFACE_ORIG")
+# Find the cmdline arguments of the relevant instance of dhclient
+# NOTE: Assumes no spaces exist in its cmdline. If this is not the case,
+#       consider using e.g. python to parse /proc/<pid>/cmdline directly.
+#       Unfortunately, bash doesn't handle a NUL field separator very well.
+DHCL_PROC=$(pgrep -a dhclient | grep "$PKT_IFACE_ORIG" | grep -v -- -6)
 if [ -z "$DHCL_PROC" ]; then
     exit 1                                  # no instance on interface
 elif [ $(echo "$DHCL_PROC" | wc -l) -ne 1 ]; then
@@ -49,7 +51,12 @@ while kill -0 $DHCL_PID; do                 # instance is still running
     fi
 done
 
-# Restart it with the same cmdline arguments
-if ! $DHCL $DHCL_ARGS; then                 # also consider passing -nw
+# Restart dhclient with the same cmdline arguments it had originally
+# Passing -nw (nowait) to immediately daemonize dhclient and prevent it, and
+# peapod in turn, from hanging while it waits for a lease.
+if ! echo "$DHCL_ARGS" | grep -q -- -nw; then
+    DHCL_ARGS="-nw $DHCL_ARGS"
+fi
+if ! $DHCL $DHCL_ARGS; then
     exit $(($?+128))
 fi

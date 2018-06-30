@@ -4,7 +4,7 @@ Documentation=man:peapod(8)
 After=network.target
 
 [Service]
-ExecStart=__SBIN__/peapod -d
+ExecStart=__SBIN__/peapod -d -p /var/run/peapod.pid -l /var/log/peapod.log
 Type=forking
 PIDFile=/var/run/peapod.pid
 

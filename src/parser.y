@@ -443,7 +443,7 @@ ifacehead	: T_IFACE STRING
 		;
 
 ifaceparams	: ifaceparams ifaceparam
-		| /* empty */
+		| ifaceparam
 		;
 
 ifaceparam	: ingressdef

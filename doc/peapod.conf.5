@@ -25,7 +25,9 @@ Comment lines start with
 .B \(dq\(dq
 (double quotes).
 
-Some options have a stanza form, requiring one or more suboptions between a
+Some options have a stanza form, requiring one or more
+.B "stanza options"
+between a
 .B {
 (opening curly brace) and an accompanying
 .B }
@@ -33,13 +35,14 @@ Some options have a stanza form, requiring one or more suboptions between a
 
 All option/suboption definitions end with
 .B ;
-(a semicolon). 
+(a semicolon).
 
 .SS Requirements
 The config file must contain at least two interface definitions.
 
 Two forms are acceptable:
 
+.RS
 .nf
 .BR "iface " name ;
 .BR "iface " "name " {
@@ -49,6 +52,7 @@ Two forms are acceptable:
 	promiscuous definition
 .B };
 .fi
+.RE
 
 In the simpler first form, the interface just grabs all EAPOL packets it sees
 off the wire and hands them off to be proxied to (sent out on) other configured
@@ -98,7 +102,7 @@ cannot be combined on the same interface.
 Stanza with options for an interface during the ingress phase.
 
 See also
-.RB \(dq "ingress options" \(dq
+.RB \(dq "ingress stanza options" \(dq
 below.
 
 .TP
@@ -114,7 +118,7 @@ below.
 Stanza with options for an interface during the egress phase.
 
 See also
-.RB \(dq "egress options" \(dq
+.RB \(dq "egress stanza options" \(dq
 below.
 
 .TP
@@ -131,6 +135,9 @@ interface with the address of a supplicant device. Once the supplicant
 establishes an EAPOL session, traffic originated by the device running
 .B peapod
 appears to be authorized (as long as MACsec is not in use).
+
+Cannot be combined on the same interface with
+.BR set\-mac .
 
 .TP
 .B set\-mac\-from
@@ -170,7 +177,7 @@ startup.
 Practically never needed. Only necessary when the interface or its drivers do
 not properly support Ethernet multicast (highly unlikely on a recent system).
 
-.SS "ingress options"
+.SS "ingress stanza options"
 Ingress script execution occurs before, and does not affect, ingress filtering.
 
 See also
@@ -212,7 +219,7 @@ received on an interface.
 In the ingress phase, filtered packets are dropped entirely and not proxied to
 other interfaces.
 
-.SS "egress options"
+.SS "egress stanza options"
 Egress filtering occurs before, and may prevent, egress script execution.
 
 See also
@@ -239,7 +246,7 @@ options.
 In the stanza form, if a packet ready to be sent on an interface has an existing
 802.1Q VLAN tag (was received tagged on its ingress interface), modify the tag
 fields according to the
-.B "dot1q options"
+.B "dot1q stanza options"
 contained in the stanza before sending it out. If it was received untagged, add
 a blank tag first and treat it as an existing tag.
 
@@ -249,7 +256,7 @@ Any existing tags are removed.
 Unlikely to be needed, but implemented for the sake of flexibility.
 
 See also
-.RB \(dq "dot1q options" \(dq
+.RB \(dq "dot1q stanza options" \(dq
 below.
 
 .TP
@@ -280,14 +287,14 @@ See also
 .RB \(dq SCRIPTS \(dq
 for more information on script execution.
 
-.SS "dot1q options"
+.SS "dot1q stanza options"
 IEEE 802.1Q VLAN tags are 32 bits long, and contain several fields. They are
 inserted immediately after the destination and source MAC addresses in an
 Ethernet frame, and their main use is to signify to upstream networking
 equipment that the frame should be treated as belonging to a particular
 virtual LAN.
 .TS
-allbox left tab(;);
+allbox tab(;);
 cb s s s s
 lb c c c c
 lb cw16 cw3 cw1 cw12
@@ -363,10 +370,10 @@ option definitions, and the corresponding EAPOL Packet Types/EAP Codes.
 
 .nf
 .TS
-allbox left tab(;);
+allbox tab(;);
 cb s s
 lb lb lb
-l l lb.
+l lw30 lbw23.
 EAPOL Packet Types \fR (cf. IEEE Std 802.1X\-2010)
 Type;Description;Keyword
 T{
@@ -388,7 +395,6 @@ T{
 .br
 8
 T};T{
-.ll 30
 EAPOL\-EAP
 .br
 EAPOL\-Start
@@ -407,7 +413,6 @@ EAPOL\-Announcement (Specific)
 .br
 EAPOL\-Announcement\-Req
 T};T{
-.ll 25
 eap
 .br
 start
@@ -428,10 +433,10 @@ announcement\-req
 T}
 .TE
 .TS
-allbox left tab(;);
+allbox tab(;);
 cb s s
 lb lb lb
-l l lb.
+l lw13 lbw9.
 EAP Codes \fR (cf. IETF RFC 2284)
 Code;Description;Keyword
 T{
@@ -443,7 +448,6 @@ T{
 .br
 4
 T};T{
-.ll 20
 EAP\-Request
 .br
 EAP\-Response
@@ -452,7 +456,6 @@ EAP\-Success
 .br
 EAP\-Failure
 T};T{
-.ll 20
 request
 .br
 response
@@ -525,7 +528,7 @@ stanza and has the form:
 .I script\-path
 is an absolute and canonical path to a executable binary or script (a text file
 with
-.RB \(dq #!interpreter\-path \(dq
+.RB \(dq #!\f[BI]interpreter\-path \(dq
 as its first line). Script paths are validated at startup to ensure that
 .BR peapod 's
 effective user ID has execute permissions on them.
@@ -565,7 +568,7 @@ EAPOL Packet Type and description.
 Format: number 0 to 9, text description
 
 .TP
-.BR PKT_IFACE_ORIG ", " PKT_IFACE_ORIG_MTU
+.BR PKT_IFACE_ORIG ", " PKT_IFACE_MTU_ORIG
 Ingress interface (interface on which packet was originally received) and
 ingress interface MTU.
 
@@ -580,19 +583,19 @@ Current interface and current interface MTU.
 
 Values same as
 .B \[u2026]_ORIG
-in ingress phase; will differ in egress phase (i.e. current interface is an
+in ingress phase; will differ in egress phase (i.e. current interface will be an
 egress interface).
 
 .TP
 .BR PKT ", " PKT_LENGTH
-Base64\-encoded raw packet and its length in bytes.
+Current Base64\-encoded raw packet and its length in bytes.
 
 Values same as
 .B \[u2026]_ORIG
 in ingress phase; may differ in egress phase if
 .B dot1q
 option is defined on current interface (i.e. current interface is configured to
-add a missing 802.1Q VLAN tag, or remove an existing one).
+add a missing 802.1Q VLAN tag, or edit/remove an existing one).
 
 .SS "Environment variables conditionally available to scripts"
 .TP
@@ -633,14 +636,13 @@ Current raw 802.1Q VLAN TCI.
 
 Available in ingress phase: if packet was received tagged, value same as
 .BR \[u2026]_ORIG ;
-in egress phase: if packet is about to be sent tagged on current egress
-interface.
+in egress phase: if packet is about to be sent tagged on current interface.
 
 Format: four hexdigits
 
 .PP
 Other environment variables may be available depending on the script interpreter
-or other runtime factors.
+or system\-specific runtime factors.
 
 See also the example script
 .I env.sh

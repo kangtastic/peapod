@@ -1,16 +1,6 @@
 /**
  * @file peapod.c
  * @brief Proxy EAP Daemon
- *
- * @mainpage peapod - Proxy EAP Daemon
- *
- * @section introsec Introduction
- *
- * Hello.
- *
- * @section installsec Installation
- *
- * Hello again.
  */
 #include <stdio.h>
 #include <stdlib.h>
