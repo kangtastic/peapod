@@ -64,10 +64,11 @@ Prerequisites: recent-ish versions of Linux, `systemd` as the service manager, `
 ### Source code documentation
 Prerequisite: a recent-ish version of `doxygen`.
 
-#### Build/clean and rebuild
+#### Build
 
     $ make html
 
+Also cleans any compiled files and existing source code documentation.  
 The results may be found at `html/index.html` in the program sources.
 
 #### Clean

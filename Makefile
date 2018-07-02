@@ -51,7 +51,7 @@ $(BDIR)/peapod.8.gz:	$(DDIR)/peapod.8
 $(BDIR)/peapod.conf.5.gz: $(DDIR)/peapod.conf.5
 			gzip < $(DDIR)/peapod.conf.5 > $(BDIR)/peapod.conf.5.gz
 
-html:			cleanhtml
+html:			cleanall
 			doxygen Doxyfile
 
 .PHONY:			service
@@ -94,7 +94,8 @@ installpeapod:		peapod
 installdoc:		doc $(DDIR)/peapod.8.html $(DDIR)/peapod.conf.5.html $(DDIR)/examples
 			install -D -m 644 $(BDIR)/peapod.8.gz $(DESTDIR)$(SHARE)/man/man8/peapod.8.gz
 			install -D -m 644 $(BDIR)/peapod.conf.5.gz $(DESTDIR)$(SHARE)/man/man5/peapod.conf.5.gz
-			install -D -m 644 -t $(DESTDIR)$(SHARE)/peapod/examples $(wildcard $(DDIR)/examples/*.conf) $(wildcard $(DDIR)/examples/*.sh)
+			install -D -m 644 -t $(DESTDIR)$(SHARE)/peapod/examples $(wildcard $(DDIR)/examples/*.conf)
+			install -D -m 755 $(wildcard $(DDIR)/examples/*.sh) $(DESTDIR)$(SHARE)/peapod/examples
 			install -D -m 644 $(DDIR)/peapod.8.html $(DESTDIR)$(SHARE)/peapod/peapod.8.html
 			install -D -m 644 $(DDIR)/peapod.conf.5.html $(DESTDIR)$(SHARE)/peapod/peapod.conf.5.html
 installservice:		service
