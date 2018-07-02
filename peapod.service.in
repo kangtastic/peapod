@@ -1,5 +1,5 @@
 [Unit]
-Description=Proxy EAP Daemon
+Description=EAPOL Proxy Daemon
 Documentation=man:peapod(8)
 After=network.target
 

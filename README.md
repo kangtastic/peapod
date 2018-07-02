@@ -1,4 +1,4 @@
-# peapod - Proxy EAP Daemon
+# peapod - EAPOL Proxy Daemon
 ## Overview
 **peapod** is a daemon that proxies **IEEE 802.1X Extensible Authentication Protocol over LAN (EAPOL)** packets between Ethernet interfaces. It supports a few tricks on a per-interface basis, so it may be considered a (highly) rudimentary general-purpose transparent bridging
 firewall/rewriting proxy for EAPOL.

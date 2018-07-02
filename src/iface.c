@@ -60,9 +60,9 @@ static const u_char eapol_grp_mac[3][ETH_ALEN] = {
  * @endcode
  */
 static struct sock_filter eapol_sock_filter[] = {
-	{ 0x28, 0, 0, 0x0000000c }, 
-	{ 0x15, 0, 1, 0x0000888e }, 
-	{ 0x6, 0, 0, 0xbef001ed }, 
+	{ 0x28, 0, 0, 0x0000000c },
+	{ 0x15, 0, 1, 0x0000888e },
+	{ 0x6, 0, 0, 0xbef001ed },
 	{ 0x6, 0, 0, 0x00000000 }
 };
 
@@ -77,7 +77,7 @@ static const struct sock_fprog eapol_fprog = {
  * @brief Check that a network interface is up and get its MTU
  *
  * Also sets the @p mtu field of @p iface to the interface's current MTU.
- * 
+ *
  * @param iface Pointer to a <tt>struct iface_t</tt> representing an interface
  * @return 0 if successful, or -1 if unsuccessful
  */

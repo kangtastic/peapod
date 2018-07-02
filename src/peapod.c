@@ -1,6 +1,6 @@
 /**
  * @file peapod.c
- * @brief Proxy EAP Daemon
+ * @brief EAPOL Proxy Daemon
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@ volatile sig_atomic_t sig_term = 0;
 /** @brief Program usage string */
 static const char usage[] = {
 "\n"
-"%s - Proxy EAP Daemon\n"
+"%s - EAPOL Proxy Daemon\n"
 "\n"
 "Usage: %s [-dtsqnoh] [-vvv] [-p <pidfile>] [-c <conffile>] [-l [<logfile>]]\n"
 "\n"

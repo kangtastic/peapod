@@ -1,4 +1,4 @@
-# Makefile for peapod - Proxy EAP Daemon
+# Makefile for peapod - EAPOL Proxy Daemon
 
 ifeq (,$(SYSTEMSERVICE))
 PKG_CONFIG		?= $(shell command -v pkg-config > /dev/null && echo pkg-config)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Filename: env.sh
-# Description: Example script for peapod - Proxy EAP Daemon
+# Description: Example script for peapod - EAPOL Proxy Daemon
 #
 # When run by peapod, determine the environment variables available, as these
 # depend upon the type of EAPOL packet and where it is in the process of being

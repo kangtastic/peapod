@@ -65,7 +65,7 @@ static union {
 	uint8_t buf[CMSG_SPACE(sizeof(struct packet_auxdata_t))];
 } cmsg_buf;
 
-/** 
+/**
  * @brief A <tt>struct msghdr</tt> for @p recvmsg(2)
  * @see @p recvmsg(2)
  */
@@ -194,7 +194,7 @@ static void decode(struct peapod_packet packet)
 
 /**
  * @brief Allocate the main buffer for the EAPOL packet
- * 
+ *
  * The size of the buffer is determined according to the highest MTU of the
  * network interfaces used by the program.
  *

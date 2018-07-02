@@ -1,17 +1,17 @@
 #!/bin/bash
 # Filename: restartdhcp.sh
-# Description: Example script for peapod - Proxy EAP Daemon
+# Description: Example script for peapod - EAPOL Proxy Daemon
 #
-# When run by peapod as the result of receiving EAP-Success on a specific
-# ingress interface, restart the system's DHCP client (dhclient in this example)
-# on that interface. Exit with different nonzero exit codes upon encountering
-# errors; peapod will report them to the user.
+# When run by peapod as the result of receiving EAP-Success on a
+# specific ingress interface, restart the system's DHCP client (dhclient
+# in this example) on that interface. Exit with different nonzero exit
+# codes upon encountering errors; peapod will report them to the user.
 
 # Interface with running dhclient instance
 DHCL_IFACE="eth0"                           # to EAPOL authenticator
 
 # Ensure script was triggered by EAP-Success on the correct (ingress) interface
-if [ $PKT_CODE -ne 3 ] ||                   # RFC 2284 §2.2
+if [ $PKT_CODE -ne 3 ] ||                   # cf. RFC 2284 §2.2
    [ "$PKT_IFACE_ORIG" != "$DHCL_IFACE" ] ||
    [ "$PKT_IFACE_ORIG" != "$PKT_IFACE" ]; then
     exit
@@ -32,19 +32,21 @@ DHCL=$(echo "$DHCL_PROC" | awk '{print $2}')
 DHCL_PID=$(echo "$DHCL_PROC" | awk '{print $1}')
 DHCL_ARGS=$(echo "$DHCL_PROC" | awk '{for(i=3;i<$NF;i++) printf $i " "; print $NF}')
 
+# Release existing DHCP lease
+# Invoke new dhclient with same cmdline arguments as the instance we want to
+# kill, but also pass -r. Existing instance will release its lease and exit.
 if kill -0 $DHCL_PID; then
-    # New dhclient invocation with -r: release interface's existing DHCP lease
-    if ! $DHCL -r $DHCL_ARGS; then          # also exits the instance
-        exit $(($?+128))
+    if ! $DHCL -r $DHCL_ARGS; then          # cf. debian's ifdown(8)
+        exit $(($?+128))                    # convention: exit code + 128
     fi
 else
     exit 7                                  # bad PID
 fi
 
-TIMEOUT=10
-while kill -0 $DHCL_PID; do                 # instance is still running
+TIMEOUT=3                                   # 3 seconds should be "plenty" :)
+while kill -0 $DHCL_PID; do
     if [ $TIMEOUT -eq 0 ]; then
-        kill -9 $DHCL_PID
+        kill -9 $DHCL_PID                   # send SIGKILL
     else
         TIMEOUT=$((TIMEOUT-1))
         sleep 1
