@@ -1,4 +1,4 @@
-# peapod - Proxy EAP Daemon
+# Makefile for peapod - Proxy EAP Daemon
 
 ifeq (,$(SYSTEMSERVICE))
 PKG_CONFIG		?= $(shell command -v pkg-config > /dev/null && echo pkg-config)
@@ -44,14 +44,12 @@ debug:			CFLAGS := $(filter-out -O3,$(CFLAGS)) -g
 debug:			cleanall peapod
 
 .PHONY:			doc
-doc:			$(BDIR)/peapod.8.gz $(BDIR)/peapod.conf.5.gz $(BDIR)/examples
+doc:			$(BDIR)/peapod.8.gz $(BDIR)/peapod.conf.5.gz
 
 $(BDIR)/peapod.8.gz:	$(DDIR)/peapod.8
 			gzip < $(DDIR)/peapod.8 > $(BDIR)/peapod.8.gz
 $(BDIR)/peapod.conf.5.gz: $(DDIR)/peapod.conf.5
 			gzip < $(DDIR)/peapod.conf.5 > $(BDIR)/peapod.conf.5.gz
-$(BDIR)/examples:	$(DDIR)/examples
-			cp -r $(DDIR)/examples $(BDIR)/examples
 
 html:			cleanhtml
 			doxygen Doxyfile
@@ -93,10 +91,12 @@ install:		installpeapod installdoc installservice
 
 installpeapod:		peapod
 			install -D -m 755 $(BDIR)/peapod $(DESTDIR)$(SBIN)/peapod
-installdoc:		doc
+installdoc:		doc $(DDIR)/peapod.8.html $(DDIR)/peapod.conf.5.html $(DDIR)/examples
 			install -D -m 644 $(BDIR)/peapod.8.gz $(DESTDIR)$(SHARE)/man/man8/peapod.8.gz
 			install -D -m 644 $(BDIR)/peapod.conf.5.gz $(DESTDIR)$(SHARE)/man/man5/peapod.conf.5.gz
-			install -D -m 644 -t $(DESTDIR)$(SHARE)/peapod/examples $(wildcard $(BDIR)/examples/*)
+			install -D -m 644 -t $(DESTDIR)$(SHARE)/peapod/examples $(wildcard $(DDIR)/examples/*.conf) $(wildcard $(DDIR)/examples/*.sh)
+			install -D -m 644 $(DDIR)/peapod.8.html $(DESTDIR)$(SHARE)/peapod/peapod.8.html
+			install -D -m 644 $(DDIR)/peapod.conf.5.html $(DESTDIR)$(SHARE)/peapod/peapod.conf.5.html
 installservice:		service
 			install -D -m 644 $(BDIR)/peapod.service $(DESTDIR)$(SYSTEMSERVICE)/peapod.service
 
