@@ -20,7 +20,7 @@ static void help_exit(int status);
 static void signal_handler(int sig);
 int main(int argc, char *argv[]);
 
-/** 
+/**
  * @name Signal counters
  * @note Global
  * @{
@@ -97,7 +97,7 @@ static void help_exit(int status)
 
 /**
  * @brief Signal handler
- * 
+ *
  * Increment signal counters upon receiving a signal. If more than one @p SIGINT
  * or @p SIGTERM has been received without being acted upon, abort the program.
  *
@@ -191,7 +191,6 @@ int peapod_redir_stdfds(void)
  */
 int main(int argc, char *argv[])
 {
-
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(struct sigaction));
 
@@ -220,18 +219,21 @@ int main(int argc, char *argv[])
 	if (args.help == 1)
 		help_exit(EXIT_SUCCESS);
 
+	/* Don't log to file or syslog if all we're doing is testing config */
 	if (args.test == 1) {
 		args.level = LOG_WARNING;
-		printf("test config file at '%s' and exit\n", args.conffile);
-		ifaces = parse_config(args.conffile);
-		printf("config file seems valid\n");
+		uint8_t dummy;
+		printf("testing config file\n");
+		ifaces = parse_config(args.conffile, &dummy);
+		printf("config file at '%s' seems valid, exiting\n",
+		       args.conffile);
 		exit(EXIT_SUCCESS);
 	}
 
 	if (log_init() == -1)
 		help_exit(EXIT_FAILURE);
 
-	ifaces = parse_config(args.conffile);
+	ifaces = parse_config(args.conffile, &args.level);
 
 	uid_t uid = getuid();
 

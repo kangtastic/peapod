@@ -50,9 +50,9 @@ static const char *clevels[] = {
 };
 /** @} */
 
-FILE *log_fs;				/**< @brief Log file */
-static char log_buf[MSGSIZ];		/**< @brief Log message buffer */
-static char log_tm[TMSIZ];		/**< @brief Timestamp buffer */
+static FILE *log_fs = NULL;		/**< @brief Log file */
+static char log_buf[MSGSIZ] = { "" };	/**< @brief Log message buffer */
+static char log_tm[TMSIZ] = { "" };	/**< @brief Timestamp buffer */
 extern struct args_t args;
 
 /**
@@ -99,10 +99,6 @@ static void log_to_file(const char *msg, int level, FILE* out)
  */
 int log_init(void)
 {
-	log_fs = NULL;
-	memset(log_buf, '\0', MSGSIZ);
-	memset(log_tm, '\0', TMSIZ);
-
 	if (args.syslog == 1) {
 		/* handle syslog decision ourselves */
 		setlogmask(LOG_UPTO(LOG_DEBUG));

@@ -122,7 +122,7 @@ Mandatory arguments are mandatory for both forms.</p>
 <dd><p>Enable logging to syslog. Set automatically by <strong><tt>-d</tt></strong> and <strong><tt>-p</tt></strong>.</p>
 </dd>
 <dt><strong><tt>-v</tt></strong></dt>
-<dd><p>Increase log verbosity. Can be specified up to three times.</p>
+<dd><p>Increase log verbosity. Can be specified up to three times. Overridden by the <strong><tt>verbosity</tt></strong> option in the config file.</p>
 	<p>With <strong><tt>-v</tt></strong>, informational messages are also logged.<br />
 	With <strong><tt>-vv</tt></strong>, so are debug messages.<br />
 	With <strong><tt>-vvv</tt></strong>, so are low-level debug messages such as Ethernet frame hexdumps. (As these last are extremely voluble, they are logged only to the console and/or to a log file, and never to syslog.)</p>

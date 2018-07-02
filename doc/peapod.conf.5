@@ -38,14 +38,13 @@ All option/suboption definitions end with
 (a semicolon).
 
 .SS Requirements
-The config file must contain at least two interface definitions.
-
-Two forms are acceptable:
+The config file must contain at least two interface definitions. Two forms are
+acceptable:
 
 .RS
 .nf
-.BR "iface " name ;
-.BR "iface " "name " {
+.BI "iface " name ;
+.BI "iface " "name " {
 	ingress stanza
 	egress stanza
 	set\-mac definition OR set\-mac\-from definition
@@ -73,6 +72,20 @@ iface eth1;
 .fi
 .RE
 
+Additionally, log verbosity may be specified at the beginning of the config
+file:
+
+.RS
+.nf
+.BI "verbosity " number ;
+.fi
+.RE
+
+.I number
+may be from 0 to 3. This has the same effect as providing the
+.B \-v
+command\-line option the corresponding number of times, but the verbosity
+specified in the config file takes precedence.
 
 .SH OPTIONS
 
@@ -83,7 +96,7 @@ to understand how and where options exert an effect within the context of
 .BR peapod 's
 control flow.
 
-.SS "iface options"
+.SS "iface stanza options"
 The options
 .B set\-mac
 and

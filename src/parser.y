@@ -56,6 +56,7 @@ static void free_egress(struct egress_t *egress);
 static void free_action(struct action_t *action);
 
 static char *conffile = NULL;
+static uint8_t *loglevel = NULL;
 
 static struct iface_t *ifaces = NULL;
 static struct iface_t *iface = NULL;
@@ -67,9 +68,11 @@ static struct action_t *action = NULL;
 
 extern int linenum;		/* lexer.l: line number in config file */
 
-struct iface_t *parse_config(const char *path)
+struct iface_t *parse_config(const char *path, uint8_t *level)
 {
 	linenum = 1;
+
+	loglevel = level;
 
 	conffile = strdup(path);
 	FILE *fd = fopen(conffile, "r");
@@ -327,6 +330,7 @@ static void yyerror(const char *str)
 %token	<str>	STRING
 %token	<mac>	MAC
 
+%token		T_VERBOSITY
 %token		T_IFACE
 
 %token		T_INGRESS
@@ -369,9 +373,24 @@ static void yyerror(const char *str)
 };
 
 %%
-grammar		: grammar ifacedef
+grammar		: grammar basedef
+		| basedef
+		;
+
+basedef		: verbositydef
 		| ifacedef
 		;
+
+verbositydef	: T_VERBOSITY NUMBER ';'
+		{
+			if ($2 > 3) {
+				err("verbosity not 0-3 (line %d)", linenum);
+				abort_parser();
+			}
+			*loglevel = LOG_WARNING + $2;
+		}
+		;
+
 
 ifacedef	: ifacehead '{' ifaceparams '}' ';'
 		{

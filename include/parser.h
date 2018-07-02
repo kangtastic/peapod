@@ -63,7 +63,7 @@ struct action_t {
 
 /** @brief Behavior during the ingress phase for an interface */
 struct ingress_t {
-	struct action_t *action;	/**< @brief Run script on ingress */	
+	struct action_t *action;	/**< @brief Run script on ingress */
 	struct filter_t *filter;	/**< @brief Filter on ingress */
 };
 
@@ -115,5 +115,5 @@ struct iface_t {
 	struct iface_t *next;		/**< @brief Next node */
 };
 
-struct iface_t *parse_config(const char* path);
+struct iface_t *parse_config(const char *path, uint8_t *level);
 void parser_print_ifaces(struct iface_t *list);

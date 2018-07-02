@@ -25,6 +25,7 @@ string			[A-Za-z0-9/`~!@#$%\^&*()_\-+=:\[\]<>\.?\\]+|L?\"(\\.|[^\n\\"])*\"
 \n			{ ++linenum; }
 "{"|"}"|";"|"/"|","	{ return *yytext; }
 
+verbosity		{ return T_VERBOSITY; }
 iface			{ return T_IFACE; }
 ingress			{ return T_INGRESS; }
 egress			{ return T_EGRESS; }
@@ -78,8 +79,8 @@ no			{ return T_NO; }
 				if (len > (sizeof(str) - 1))
 					return T_BAD_TOKEN;
 
-				/* Dequotify strings. Conveniently, the lexer
-				 * already detects unclosed double quotes.
+				/* De-doublequotify strings. Conveniently, the
+				 * lexer already detects unclosed double quotes.
 				 */
 				if (yytext[0] == '\"') {
 					strncpy(str, yytext + 1, len - 2);

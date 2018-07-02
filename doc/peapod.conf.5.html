@@ -56,8 +56,7 @@
 <p>Some options have a stanza form, requiring one or more suboptions between a <strong><tt>{</tt></strong> (opening curly brace) and an accompanying <strong><tt>}</tt></strong> (closing curly brace) as part of the option definition.</p>
 <p>All option/suboption definitions end with <strong><tt>;</tt></strong> (a semicolon).</p>
 <h2 id="requirements">Requirements</h2>
-<p>The config file must contain at least two interface definitions.</p>
-<p>Two forms are acceptable:</p>
+<p>The config file must contain at least two interface definitions. Two forms are acceptable:</p>
 <pre><code><strong>iface</strong> <em>name</em><strong>;</strong>
 <strong>iface</strong> <em>name</em> <strong>{</strong>
     ingress stanza
@@ -67,6 +66,9 @@
 <strong>};</strong></code></pre>
 <p>In the simpler first form, the interface just grabs all EAPOL packets it sees off the wire and hands them off to be proxied to (sent out on) other configured interfaces without ever doing anything special to or with the packets.</p>
 <p>In the second form, <strong><tt>iface</tt></strong> is a stanza, and suboptions are provided to influence <strong>peapod</strong>'s behavior with respect to the named interface.</p>
+<p>Additionally, log verbosity may be specified at the beginning of the config file:</p>
+<pre><code><strong>verbosity</strong> <em>number</em><strong>;</strong></code></pre>
+<p><em><tt>number</tt></em> may be from 0 to 3. This has the same effect as providing the <strong><tt>-v</tt></strong> command-line option the corresponding number of times, but the verbosity specified in the config file takes precedence.</p>
 <p>The minimum config file is therefore:</p>
 <pre><code>iface eth0;
 iface eth1;</code></pre>

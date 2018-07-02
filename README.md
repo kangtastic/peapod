@@ -17,31 +17,40 @@ Abilities surpassing those of a simple proxy include:
 Change interface MAC addresses to a **user-defined address**, or to the **address of an actual supplicant** behind the proxy learned during runtime. This enables the device running **peapod** to masquerade as the supplicant and originate what appears to be authorized network traffic once the supplicant establishes an EAPOL session (as long as MACsec is not in use).
 
 ## Getting started
-~~Install the latest release for your system (.deb and .rpm packages are available)~~ NOT YET or build and install from source.
+See the manual pages for much more extensive documentation.  
+HTML versions of the man pages: [**peapod**(8)](http://htmlpreview.github.io/?https://github.com/kangtastic/peapod/blob/master/doc/peapod.8.html), [**peapod.conf**(5)](http://htmlpreview.github.io/?https://github.com/kangtastic/peapod/blob/master/doc/peapod.conf.5.html)
+### Installation
+~~Install the latest release for your system (.deb and .rpm packages are available)~~ NOT YET or build and install from source as seen in the next section.
 
-Place a config file at `/etc/peapod.conf`. The minimum is:
+Place a config file at `/etc/peapod.conf`, e.g.:
 
     iface eth0;
     iface eth1;
 
-This config silently proxies all EAPOL packets between **eth0** and **eth1**.
+This is the minimum required config and silently proxies all EAPOL packets between **eth0** and **eth1**.  
+For more complicated requirements, see the man pages.
 
+### Usage
 Start **peapod**:
 
     # systemctl start peapod
 
-Once everything is working as it should, tell `systemd` to start **peapod** at boot:
+Logs are saved to `/var/log/peapod.log` by default. It may be helpful to refer to the log during initial setup to verify that **peapod** is doing its job.
+
+Log verbosity may be controlled by adding the following to the beginning of the config file:
+
+    verbosity N;
+
+Here, `N` is 0, 1, 2, or 3. Verbosity is 0 by default.
+
+Once everything is working properly, tell `systemd` to start **peapod** at boot:
 
     # systemctl enable peapod
-
-See the manual pages for much more extensive documentation.
-
-HTML man pages: [**peapod**(8)](doc/peapod.8.html), [**peapod.conf**(5)](doc/peapod.conf.5.html)
 
 ## Building from source
 Prerequisites: recent-ish versions of Linux, `systemd` as the service manager, `bison`, `flex`, `pkg-control`, and, of course, `gcc` or similar.
 
-### Executable, manual files, examples, and systemd unit file
+### Executable, man pages, examples, and systemd unit file
 #### Build and install
 
     $ make
