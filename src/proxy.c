@@ -146,30 +146,34 @@ void proxy(struct iface_t *ifaces)
 	struct peapod_packet pkt;
 
 	while (1) {
+		check_signals();
+
 		/* Begin ingress phase */
 		if (num_ifaces != rdy_ifaces)
 			ecritdie("some interfaces are not ready");
 
 		if (epoll_pwait(epfd, &event, 1, -1, &sigempty) == -1) {
 			if (errno == EINTR)
-				check_signals();
+				goto proxy_error;
 			else
 				ecritdie("cannot wait for epoll events: %s");
 		}
 
-		iface = event.data.ptr;		/* Received an EAPOL packet */
+		/* Received an EAPOL packet? */
+		iface = event.data.ptr ? event.data.ptr : NULL;
 
 		if (!(event.events & EPOLLIN)) {
-			/* Bringing down an interface invalidates its sockets */
+			/* Brought an interface down, along with its sockets */
 			if (ignore_epollerr == 1 && event.events & EPOLLERR)
 				goto proxy_ignore_epollerr;
 
 			/* We're here for some other reason */
-			spurious_event(iface->name, event.events);
+			spurious_event(iface ? iface->name : NULL,
+				       event.events);
 			goto proxy_error;
 		}
 
-		debug("got an EPOLLIN event, interface '%s'",iface->name);
+		debug("got an EPOLLIN event, interface '%s'", iface->name);
 
 		pkt = packet_recvmsg(iface);
 
