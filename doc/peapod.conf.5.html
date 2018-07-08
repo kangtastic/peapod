@@ -5,9 +5,9 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="date" content="2018-06-30" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PEAPOD.CONF(5)</title>
-  <style type="text/css">code{white-space: pre;}</style>
-  <link href="data:text/css;charset=utf-8,html%20%7B%0Afont%2Dfamily%3A%20Georgia%2C%20Palatino%2C%20%27Palatino%20Linotype%27%2C%20Times%2C%20%27Times%20New%20Roman%27%2C%20serif%3B%0Afont%2Dsize%3A%20100%25%3B%0Aoverflow%2Dy%3A%20scroll%3B%0A%2Dwebkit%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%2Dms%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%7D%0Abody%20%7B%0Amargin%3A%20auto%3B%0Apadding%2Dright%3A%201em%3B%0Apadding%2Dleft%3A%201em%3B%0Amax%2Dwidth%3A%2085%25%3B%0Aborder%2Dleft%3A%201px%20solid%20black%3B%0Aborder%2Dright%3A%201px%20solid%20black%3B%0Acolor%3A%20black%3B%0Afont%2Dsize%3A%2011px%3B%0Aline%2Dheight%3A%20140%25%3B%0Acolor%3A%20%23333%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230645ad%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%230b0080%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%2306e%3B%0A%7D%0Aa%3Aactive%20%7B%0Acolor%3A%20%23faa700%3B%0A%7D%0Aa%3Afocus%20%7B%0Aoutline%3A%20thin%20dotted%3B%0A%7D%0A%2A%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0A%2A%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0Aa%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Aa%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Att%20%7B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Apre%20%7B%0Afont%2Dfamily%3A%20monospace%2C%20monospace%3B%0A%5Ffont%2Dfamily%3A%20%27courier%20new%27%2C%20monospace%3B%0Amargin%3A%201em%3B%0Aborder%3A%201px%20dotted%20gray%3B%0Abackground%2Dcolor%3A%20%23ececec%3B%0Acolor%3A%20%23111111%3B%0Apadding%3A%200%2E5em%3B%0Afont%2Dsize%3A%2085%25%3B%0Aline%2Dheight%3A%20120%25%3B%0A%7D%0Ah1%20a%2C%20h2%20a%2C%20h3%20a%2C%20h4%20a%2C%20h5%20a%20%7B%0Atext%2Ddecoration%3A%20none%3B%0Acolor%3A%20%237a5ada%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%2C%20h4%2C%20h5%20%7B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Aborder%2Dbottom%3A%201px%20dotted%20black%3B%0A%7D%0Ah1%20%7B%20font%2Dsize%3A%20170%25%3B%20%7D%0Ah2%20%7B%20font%2Dsize%3A%20150%25%3B%20%7D%0Ah3%20%7B%20font%2Dsize%3A%20130%25%3B%7D%0Ah4%2C%20h5%20%7B%0Afont%2Dsize%3A%20115%25%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Ah1%2Etitle%20%7B%0Afont%2Dsize%3A%20250%25%3B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Atext%2Dalign%3A%20left%3B%0Aborder%3A%20none%3B%0A%7D%0Adt%20code%20%7B%20font%2Dweight%3A%20bold%3B%20%7D%0Add%20p%20%7B%20margin%2Dtop%3A%200%3B%20%7D%0Atable%20%7B%20border%2Dcollapse%3A%20collapse%3B%20%7D%0Atable%20th%20%7B%20font%2Dweight%3A%20normal%3B%20%7D%0Atable%20td%2C%20table%20th%20%7B%0Aborder%3A%201px%20solid%20%23ddd%3B%0Apadding%3A%208px%3B%0A%7D%0A%23footer%20%7B%0Apadding%2Dtop%3A%201em%3B%0Afont%2Dsize%3A%2070%25%3B%0Acolor%3A%20gray%3B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20480px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2012px%3B%0A%7D%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20768px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2014px%3B%0A%7D%0A%7D%0A%40media%20print%20%7B%0A%2A%20%7B%0Abackground%3A%20transparent%20%21important%3B%0Acolor%3A%20black%20%21important%3B%0Afilter%3A%20none%20%21important%3B%0A%2Dms%2Dfilter%3A%20none%20%21important%3B%0A%7D%0Abody%20%7B%0Afont%2Dsize%3A%2011pt%3B%0Amax%2Dwidth%3A%20100%25%3B%0A%7D%0Aa%2C%20a%3Avisited%20%7B%0Atext%2Ddecoration%3A%20underline%3B%0A%7D%0Ahr%20%7B%0Aheight%3A%201px%3B%0Aborder%3A%200%3B%0Aborder%2Dbottom%3A%201px%20solid%20black%3B%0A%7D%0Aa%5Bhref%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28href%29%20%22%29%22%3B%0A%7D%0Aabbr%5Btitle%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28title%29%20%22%29%22%3B%0A%7D%0A%2Eir%20a%3Aafter%2C%20a%5Bhref%5E%3D%22javascript%3A%22%5D%3Aafter%2C%20a%5Bhref%5E%3D%22%23%22%5D%3Aafter%20%7B%0Acontent%3A%20%22%22%3B%0A%7D%0Apre%2C%20blockquote%20%7B%0Aborder%3A%201px%20solid%20%23999%3B%0Apadding%2Dright%3A%201em%3B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Atr%2C%20img%20%7B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Aimg%20%7B%0Amax%2Dwidth%3A%20100%25%20%21important%3B%0A%7D%0A%40page%20%3Aleft%20%7B%0Amargin%3A%2015mm%2020mm%2015mm%2010mm%3B%0A%7D%0A%40page%20%3Aright%20%7B%0Amargin%3A%2015mm%2010mm%2015mm%2020mm%3B%0A%7D%0Ap%2C%20h2%2C%20h3%20%7B%0Aorphans%3A%203%3B%0Awidows%3A%203%3B%0A%7D%0Ah2%2C%20h3%20%7B%0Apage%2Dbreak%2Dafter%3A%20avoid%3B%0A%7D%0A%7D%0A" rel="stylesheet" type="text/css" />
+  <link href="data:text/css;charset=utf-8,html%20%7B%0Afont%2Dfamily%3A%20Georgia%2C%20Palatino%2C%20%27Palatino%20Linotype%27%2C%20Times%2C%20%27Times%20New%20Roman%27%2C%20serif%3B%0Afont%2Dsize%3A%20100%25%3B%0Aoverflow%2Dy%3A%20scroll%3B%0A%2Dwebkit%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%2Dms%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%7D%0Abody%20%7B%0Amargin%3A%20auto%3B%0Apadding%2Dright%3A%201em%3B%0Apadding%2Dleft%3A%201em%3B%0Amax%2Dwidth%3A%2085%25%3B%0Aborder%2Dleft%3A%201px%20solid%20black%3B%0Aborder%2Dright%3A%201px%20solid%20black%3B%0Acolor%3A%20black%3B%0Afont%2Dsize%3A%2011px%3B%0Aline%2Dheight%3A%20140%25%3B%0Acolor%3A%20%23333%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230645ad%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%230b0080%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%2306e%3B%0A%7D%0Aa%3Aactive%20%7B%0Acolor%3A%20%23faa700%3B%0A%7D%0Aa%3Afocus%20%7B%0Aoutline%3A%20thin%20dotted%3B%0A%7D%0A%2A%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0A%2A%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0Aa%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Aa%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Acode%20%7B%0Awhite%2Dspace%3A%20pre%3B%0A%7D%0Att%20%7B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Apre%20%7B%0Afont%2Dfamily%3A%20monospace%2C%20monospace%3B%0A%5Ffont%2Dfamily%3A%20%27courier%20new%27%2C%20monospace%3B%0Amargin%3A%201em%3B%0Aborder%3A%201px%20dotted%20gray%3B%0Abackground%2Dcolor%3A%20%23ececec%3B%0Acolor%3A%20%23111111%3B%0Apadding%3A%200%2E5em%3B%0Afont%2Dsize%3A%2085%25%3B%0Aline%2Dheight%3A%20120%25%3B%0A%7D%0Ah1%20a%2C%20h2%20a%2C%20h3%20a%2C%20h4%20a%2C%20h5%20a%20%7B%0Atext%2Ddecoration%3A%20none%3B%0Acolor%3A%20%237a5ada%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%2C%20h4%2C%20h5%20%7B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Aborder%2Dbottom%3A%201px%20dotted%20black%3B%0A%7D%0Ah1%20%7B%20font%2Dsize%3A%20170%25%3B%20%7D%0Ah2%20%7B%20font%2Dsize%3A%20150%25%3B%20%7D%0Ah3%20%7B%20font%2Dsize%3A%20130%25%3B%7D%0Ah4%2C%20h5%20%7B%0Afont%2Dsize%3A%20115%25%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Ah1%2Etitle%20%7B%0Afont%2Dsize%3A%20250%25%3B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Atext%2Dalign%3A%20left%3B%0Aborder%3A%20none%3B%0A%7D%0Adt%20code%20%7B%20font%2Dweight%3A%20bold%3B%20%7D%0Add%20p%20%7B%20margin%2Dtop%3A%200%3B%20%7D%0Atable%20%7B%20border%2Dcollapse%3A%20collapse%3B%20%7D%0Atable%20th%20%7B%20font%2Dweight%3A%20normal%3B%20%7D%0Atable%20td%2C%20table%20th%20%7B%0Aborder%3A%201px%20solid%20%23ddd%3B%0Apadding%3A%208px%3B%0A%7D%0A%23footer%20%7B%0Apadding%2Dtop%3A%201em%3B%0Afont%2Dsize%3A%2070%25%3B%0Acolor%3A%20gray%3B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20480px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2012px%3B%0A%7D%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20768px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2014px%3B%0A%7D%0A%7D%0A%40media%20print%20%7B%0A%2A%20%7B%0Abackground%3A%20transparent%20%21important%3B%0Acolor%3A%20black%20%21important%3B%0Afilter%3A%20none%20%21important%3B%0A%2Dms%2Dfilter%3A%20none%20%21important%3B%0A%7D%0Abody%20%7B%0Afont%2Dsize%3A%2011pt%3B%0Amax%2Dwidth%3A%20100%25%3B%0A%7D%0Aa%2C%20a%3Avisited%20%7B%0Atext%2Ddecoration%3A%20underline%3B%0A%7D%0Ahr%20%7B%0Aheight%3A%201px%3B%0Aborder%3A%200%3B%0Aborder%2Dbottom%3A%201px%20solid%20black%3B%0A%7D%0Aa%5Bhref%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28href%29%20%22%29%22%3B%0A%7D%0Aabbr%5Btitle%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28title%29%20%22%29%22%3B%0A%7D%0A%2Eir%20a%3Aafter%2C%20a%5Bhref%5E%3D%22javascript%3A%22%5D%3Aafter%2C%20a%5Bhref%5E%3D%22%23%22%5D%3Aafter%20%7B%0Acontent%3A%20%22%22%3B%0A%7D%0Apre%2C%20blockquote%20%7B%0Aborder%3A%201px%20solid%20%23999%3B%0Apadding%2Dright%3A%201em%3B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Atr%2C%20img%20%7B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Aimg%20%7B%0Amax%2Dwidth%3A%20100%25%20%21important%3B%0A%7D%0A%40page%20%3Aleft%20%7B%0Amargin%3A%2015mm%2020mm%2015mm%2010mm%3B%0A%7D%0A%40page%20%3Aright%20%7B%0Amargin%3A%2015mm%2010mm%2015mm%2020mm%3B%0A%7D%0Ap%2C%20h2%2C%20h3%20%7B%0Aorphans%3A%203%3B%0Awidows%3A%203%3B%0A%7D%0Ah2%2C%20h3%20%7B%0Apage%2Dbreak%2Dafter%3A%20avoid%3B%0A%7D%0A%7D%0A" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <div id="header">
@@ -73,7 +73,7 @@
 <pre><code>iface eth0;
 iface eth1;</code></pre>
 <h1 id="options">OPTIONS</h1>
-<p>See <a href="http://htmlpreview.github.io/?https://github.com/kangtastic/peapod/blob/master/doc/peapod.8.html#operation"><strong>peapod</strong>(8), &quot;<strong>OPERATION</strong>&quot;</a> to understand how and where options exert an effect within the context of <strong>peapod</strong>'s control flow.</p>
+<p>See <a href="http://kangtastic.github.io/peapod/peapod.8.html#operation"><strong>peapod</strong>(8), &quot;<strong>OPERATION</strong>&quot;</a> to understand how and where options exert an effect within the context of <strong>peapod</strong>'s control flow.</p>
 <h2 id="iface-stanza-options">iface stanza options</h2>
 <p>The options <strong><tt>set-mac</tt></strong> and <strong><tt>set-mac-from</tt></strong> cannot be combined on the same interface.</p>
 <dl>
@@ -383,11 +383,12 @@ filter all;</code></pre>
 <p>See also the example script <em>env.sh</em> to help determine the exact environment variables available to scripts.</p>
 <h1 id="examples">EXAMPLES</h1>
 <p>All example config files and scripts mentioned in this section are included in <strong>peapod</strong>'s shared resources in <em>/usr/share/peapod/examples</em>, as well as in the <em>doc/examples</em> subdirectory of the program sources.</p>
-<h2 id="minimum.conf">minimum.conf</h2>
+<p>This HTML rendition of <strong>peapod.conf</strong>(5) also has links to the raw files/scripts.</p>
+<h2 id="minimum.conf"><a href="examples/minimum.conf">minimum.conf</a></h2>
 <p>Silently proxy all EAPOL packets between <strong>eth0</strong> and <strong>eth1</strong>.</p>
 <pre><code>iface eth0;
 iface eth1;</code></pre>
-<h2 id="portmirror.conf">portmirror.conf</h2>
+<h2 id="portmirror.conf"><a href="examples/portmirror.conf">portmirror.conf</a></h2>
 <p>Packets received on a configured interface are proxied to all other configured interfaces, so creating a port mirror for the traffic between two interfaces is as easy as adding a third. We also ensure that any packets that somehow enter on <strong>eth2</strong> are not proxied to <strong>eth0</strong> and <strong>eth1</strong>.</p>
 <pre><code>iface eth0;
 iface eth1;
@@ -399,7 +400,7 @@ iface eth2 {
     filter all;
     };
 };</code></pre>
-<h2 id="macspoof.conf">macspoof.conf</h2>
+<h2 id="macspoof.conf"><a href="examples/macspoof.conf">macspoof.conf</a></h2>
 <p>Impersonate a supplicant from the network's point of view. Connectivity on <strong>eth0</strong> may be achieved by static IP, gateway, and DHCP assignment.</p>
 <pre><code># Network with an EAPOL authenticator
 iface eth0 {
@@ -413,22 +414,22 @@ iface eth0 {
 
 # Supplicant behind proxy
 iface eth1;</code></pre>
-<h2 id="pcap.conf">pcap.conf</h2>
+<h2 id="pcap.conf"><a href="examples/pcap.conf">pcap.conf</a></h2>
 <p>Save all EAPOL packets proxied between <strong>eth0</strong> and <strong>eth1</strong> to a <em>.pcap</em> file.</p>
 <pre><code>iface eth0 {
     ingress {
         # Runs when any EAPOL packet received on eth0
-        exec all &quot;/path/to/pcap.sh&quot;;
+        exec all &quot;/path/to/<a href="examples/pcap.sh">pcap.sh</a>&quot;;
     };
 };
 
 iface eth1 {
     ingress {
         # Runs when any EAPOL packet received on eth1
-        exec all &quot;/path/to/pcap.sh&quot;;
+        exec all &quot;/path/to/<a href="examples/pcap.ch">pcap.sh</a>&quot;;
     };
 };</code></pre>
-<h2 id="advanced.conf">advanced.conf</h2>
+<h2 id="advanced.conf"><a href="examples/advanced.conf">advanced.conf</a></h2>
 <p>Demonstrates more advanced usage. Impersonate a supplicant, also inserting priority tags into its EAPOL packets (authenticator is priority tagging but supplicant isn't; remedy the lack). Run scripts to &quot;borrow&quot; the DHCP assignment intended for supplicant and log any failed authentication attempts.</p>
 <pre><code># Network with an EAPOL authenticator
 iface eth0 {
@@ -440,10 +441,10 @@ iface eth0 {
 
         # Runs when EAP-Success received from authenticator
         # restartdhcp.sh restarts the system's DHCP client on eth0
-        exec success &quot;/path/to/restartdhcp.sh&quot;;
+        exec success &quot;/path/to/<a href="restartdhcp.sh">restartdhcp.sh</a>&quot;;
 
         # Runs when EAP-Failure received
-        # exec failure &quot;/path/to/logfailure.sh&quot;;
+        # exec failure &quot;/path/to/<a href="examples/logfailure.sh">logfailure.sh</a>&quot;;
     };
     egress {
         # Priority tag all packets leaving eth0 with priority 7
@@ -467,7 +468,7 @@ iface eth1 {
         # logfailure.sh is written so as to ensure that running
         # it here as an egress script on eth1 is equivalent to
         # running it above as an ingress script on eth0
-        exec failure &quot;/path/to/logfailure.sh&quot;;
+        exec failure &quot;/path/to/<a href="examples/logfailure.sh">logfailure.sh</a>&quot;;
     };
 };</code></pre>
 <h1 id="files">FILES</h1>
@@ -476,6 +477,6 @@ iface eth1 {
 <em>/var/log/peapod.log</em><br />
 <em>/var/run/peapod.pid</em></p>
 <h1 id="see-also">SEE ALSO</h1>
-<p><a href="http://htmlpreview.github.io/?https://github.com/kangtastic/peapod/blob/master/doc/peapod.8.html"><strong>peapod</strong>(8)</a></p>
+<p><a href="http://kangtastic.github.io/peapod/peapod.8.html"><strong>peapod</strong>(8)</a></p>
 </body>
 </html>

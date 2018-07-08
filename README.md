@@ -18,7 +18,7 @@ Change interface MAC addresses to a **user-defined address**, or to the **addres
 
 ## Getting started
 See the manual pages for much more extensive documentation.  
-HTML versions of the man pages: [**peapod**(8)](http://htmlpreview.github.io/?https://github.com/kangtastic/peapod/blob/master/doc/peapod.8.html), [**peapod.conf**(5)](http://htmlpreview.github.io/?https://github.com/kangtastic/peapod/blob/master/doc/peapod.conf.5.html)
+HTML versions of the man pages: [**peapod**(8)](http://kangtastic.github.io/peapod/peapod.8.html), [**peapod.conf**(5)](http://kangtastic.github.io/peapod/peapod.conf.5.html)
 ### Installation
 ~~Install the latest release for your system (.deb and .rpm packages are available)~~ NOT YET or build and install from source as seen in the next section.
 

@@ -80,7 +80,7 @@ for config file semantics and syntax.
 
 The remainder of this section provides an overview of
 .BR peapod 's
-control flow once it begins proxying messages proper, and is intended to assist
+control flow once it begins proxying packets proper, and is intended to assist
 in the creation of config files. This can be divided into
 .B ingress
 and
@@ -145,7 +145,7 @@ For each egress interface, the following is then performed:
 
 .RS
 .IP "1. " 3
-Make a copy of the packet.
+Make a copy of the packet to be used with the current egress interface.
 .IP "2. " 3
 If any existing 802.1Q VLAN tag in the packet should be manipulated or removed,
 or one should be added (as configured in a
