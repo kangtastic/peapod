@@ -1,7 +1,8 @@
 #!/usr/bin/make -f
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CFLAGS_MAINT_APPEND = -Wall -pedantic -fPIC -pie -Wl,-z,relro -Wl,-z,now --std=gnu11
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,as-needed
-# export DEB_BUILD_OPTIONS=nocheck
+export DEB_BUILD_OPTIONS=nocheck
 
 %:
-	dh $@ --parallel
+	dh $@
