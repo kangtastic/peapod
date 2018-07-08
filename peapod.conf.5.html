@@ -1,0 +1,482 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="date" content="2018-06-30" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PEAPOD.CONF(5)</title>
+  <link href="data:text/css;charset=utf-8,html%20%7B%0Afont%2Dfamily%3A%20Georgia%2C%20Palatino%2C%20%27Palatino%20Linotype%27%2C%20Times%2C%20%27Times%20New%20Roman%27%2C%20serif%3B%0Afont%2Dsize%3A%20100%25%3B%0Aoverflow%2Dy%3A%20scroll%3B%0A%2Dwebkit%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%2Dms%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%7D%0Abody%20%7B%0Amargin%3A%20auto%3B%0Apadding%2Dright%3A%201em%3B%0Apadding%2Dleft%3A%201em%3B%0Amax%2Dwidth%3A%2085%25%3B%0Aborder%2Dleft%3A%201px%20solid%20black%3B%0Aborder%2Dright%3A%201px%20solid%20black%3B%0Acolor%3A%20black%3B%0Afont%2Dsize%3A%2011px%3B%0Aline%2Dheight%3A%20140%25%3B%0Acolor%3A%20%23333%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230645ad%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%230b0080%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%2306e%3B%0A%7D%0Aa%3Aactive%20%7B%0Acolor%3A%20%23faa700%3B%0A%7D%0Aa%3Afocus%20%7B%0Aoutline%3A%20thin%20dotted%3B%0A%7D%0A%2A%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0A%2A%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0Aa%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Aa%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Acode%20%7B%0Awhite%2Dspace%3A%20pre%3B%0A%7D%0Att%20%7B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Apre%20%7B%0Afont%2Dfamily%3A%20monospace%2C%20monospace%3B%0A%5Ffont%2Dfamily%3A%20%27courier%20new%27%2C%20monospace%3B%0Amargin%3A%201em%3B%0Aborder%3A%201px%20dotted%20gray%3B%0Abackground%2Dcolor%3A%20%23ececec%3B%0Acolor%3A%20%23111111%3B%0Apadding%3A%200%2E5em%3B%0Afont%2Dsize%3A%2085%25%3B%0Aline%2Dheight%3A%20120%25%3B%0A%7D%0Ah1%20a%2C%20h2%20a%2C%20h3%20a%2C%20h4%20a%2C%20h5%20a%20%7B%0Atext%2Ddecoration%3A%20none%3B%0Acolor%3A%20%237a5ada%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%2C%20h4%2C%20h5%20%7B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Aborder%2Dbottom%3A%201px%20dotted%20black%3B%0A%7D%0Ah1%20%7B%20font%2Dsize%3A%20170%25%3B%20%7D%0Ah2%20%7B%20font%2Dsize%3A%20150%25%3B%20%7D%0Ah3%20%7B%20font%2Dsize%3A%20130%25%3B%7D%0Ah4%2C%20h5%20%7B%0Afont%2Dsize%3A%20115%25%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Ah1%2Etitle%20%7B%0Afont%2Dsize%3A%20250%25%3B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Atext%2Dalign%3A%20left%3B%0Aborder%3A%20none%3B%0A%7D%0Adt%20code%20%7B%20font%2Dweight%3A%20bold%3B%20%7D%0Add%20p%20%7B%20margin%2Dtop%3A%200%3B%20%7D%0Atable%20%7B%20border%2Dcollapse%3A%20collapse%3B%20%7D%0Atable%20th%20%7B%20font%2Dweight%3A%20normal%3B%20%7D%0Atable%20td%2C%20table%20th%20%7B%0Aborder%3A%201px%20solid%20%23ddd%3B%0Apadding%3A%208px%3B%0A%7D%0A%23footer%20%7B%0Apadding%2Dtop%3A%201em%3B%0Afont%2Dsize%3A%2070%25%3B%0Acolor%3A%20gray%3B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20480px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2012px%3B%0A%7D%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20768px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2014px%3B%0A%7D%0A%7D%0A%40media%20print%20%7B%0A%2A%20%7B%0Abackground%3A%20transparent%20%21important%3B%0Acolor%3A%20black%20%21important%3B%0Afilter%3A%20none%20%21important%3B%0A%2Dms%2Dfilter%3A%20none%20%21important%3B%0A%7D%0Abody%20%7B%0Afont%2Dsize%3A%2011pt%3B%0Amax%2Dwidth%3A%20100%25%3B%0A%7D%0Aa%2C%20a%3Avisited%20%7B%0Atext%2Ddecoration%3A%20underline%3B%0A%7D%0Ahr%20%7B%0Aheight%3A%201px%3B%0Aborder%3A%200%3B%0Aborder%2Dbottom%3A%201px%20solid%20black%3B%0A%7D%0Aa%5Bhref%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28href%29%20%22%29%22%3B%0A%7D%0Aabbr%5Btitle%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28title%29%20%22%29%22%3B%0A%7D%0A%2Eir%20a%3Aafter%2C%20a%5Bhref%5E%3D%22javascript%3A%22%5D%3Aafter%2C%20a%5Bhref%5E%3D%22%23%22%5D%3Aafter%20%7B%0Acontent%3A%20%22%22%3B%0A%7D%0Apre%2C%20blockquote%20%7B%0Aborder%3A%201px%20solid%20%23999%3B%0Apadding%2Dright%3A%201em%3B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Atr%2C%20img%20%7B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Aimg%20%7B%0Amax%2Dwidth%3A%20100%25%20%21important%3B%0A%7D%0A%40page%20%3Aleft%20%7B%0Amargin%3A%2015mm%2020mm%2015mm%2010mm%3B%0A%7D%0A%40page%20%3Aright%20%7B%0Amargin%3A%2015mm%2010mm%2015mm%2020mm%3B%0A%7D%0Ap%2C%20h2%2C%20h3%20%7B%0Aorphans%3A%203%3B%0Awidows%3A%203%3B%0A%7D%0Ah2%2C%20h3%20%7B%0Apage%2Dbreak%2Dafter%3A%20avoid%3B%0A%7D%0A%7D%0A" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">PEAPOD.CONF(5)</h1>
+<h3 class="date">June 30, 2018</h3>
+</div>
+<div id="TOC">
+<ul>
+<li><a href="#name">NAME</a></li>
+<li><a href="#description">DESCRIPTION</a><ul>
+<li><a href="#syntax">Syntax</a></li>
+<li><a href="#requirements">Requirements</a></li>
+</ul></li>
+<li><a href="#options">OPTIONS</a><ul>
+<li><a href="#iface-stanza-options">iface stanza options</a></li>
+<li><a href="#ingress-stanza-options">ingress stanza options</a></li>
+<li><a href="#egress-stanza-options">egress stanza options</a></li>
+<li><a href="#dot1q-stanza-options">dot1q stanza options</a></li>
+</ul></li>
+<li><a href="#types">TYPES</a><ul>
+<li><a href="#type-keywords">type keywords</a></li>
+<li><a href="#packet-type-vs.-code">Packet Type vs. Code</a></li>
+</ul></li>
+<li><a href="#scripts">SCRIPTS</a><ul>
+<li><a href="#environment-variables-always-available-to-scripts">Environment variables always available to scripts</a></li>
+<li><a href="#environment-variables-conditionally-available-to-scripts">Environment variables conditionally available to scripts</a></li>
+</ul></li>
+<li><a href="#examples">EXAMPLES</a><ul>
+<li><a href="#minimum.conf">minimum.conf</a></li>
+<li><a href="#portmirror.conf">portmirror.conf</a></li>
+<li><a href="#macspoof.conf">macspoof.conf</a></li>
+<li><a href="#pcap.conf">pcap.conf</a></li>
+<li><a href="#advanced.conf">advanced.conf</a></li>
+</ul></li>
+<li><a href="#files">FILES</a></li>
+<li><a href="#see-also">SEE ALSO</a></li>
+</ul>
+</div>
+<h1 id="name">NAME</h1>
+<p>peapod.conf - configuration file for the EAPOL proxy daemon <strong>peapod</strong></p>
+<h1 id="description">DESCRIPTION</h1>
+<p><strong>peapod</strong> requires a config file to determine the network interfaces on which it should listen for EAPOL packets and how packets should be received and sent on those interfaces. &quot;EAPOL packet&quot; in this sense is an Ethernet frame with the EAPOL EtherType of <strong><tt>0x888e</tt></strong> encapsulating either an EAP packet or certain EAPOL control messages.</p>
+<h2 id="syntax">Syntax</h2>
+<p>The syntax is mostly self-explanatory.</p>
+<p>Comment lines start with <strong><tt>#</tt></strong> (a number sign), and paths containing spaces may be enclosed in <strong><tt>&quot;&quot;</tt></strong> (double quotes).</p>
+<p>Some options have a stanza form, requiring one or more suboptions between a <strong><tt>{</tt></strong> (opening curly brace) and an accompanying <strong><tt>}</tt></strong> (closing curly brace) as part of the option definition.</p>
+<p>All option/suboption definitions end with <strong><tt>;</tt></strong> (a semicolon).</p>
+<h2 id="requirements">Requirements</h2>
+<p>The config file must contain at least two interface definitions. Two forms are acceptable:</p>
+<pre><code><strong>iface</strong> <em>name</em><strong>;</strong>
+<strong>iface</strong> <em>name</em> <strong>{</strong>
+    ingress stanza
+    egress stanza
+    set-mac definition OR set-mac-from definition
+    promiscuous definition
+<strong>};</strong></code></pre>
+<p>In the simpler first form, the interface just grabs all EAPOL packets it sees off the wire and hands them off to be proxied to (sent out on) other configured interfaces without ever doing anything special to or with the packets.</p>
+<p>In the second form, <strong><tt>iface</tt></strong> is a stanza, and suboptions are provided to influence <strong>peapod</strong>'s behavior with respect to the named interface.</p>
+<p>Additionally, log verbosity may be specified at the beginning of the config file:</p>
+<pre><code><strong>verbosity</strong> <em>number</em><strong>;</strong></code></pre>
+<p><em><tt>number</tt></em> may be from 0 to 3. This has the same effect as providing the <strong><tt>-v</tt></strong> command-line option the corresponding number of times, but the verbosity specified in the config file takes precedence.</p>
+<p>The minimum config file is therefore:</p>
+<pre><code>iface eth0;
+iface eth1;</code></pre>
+<h1 id="options">OPTIONS</h1>
+<p>See <a href="http://kangtastic.github.io/peapod/peapod.8.html#operation"><strong>peapod</strong>(8), &quot;<strong>OPERATION</strong>&quot;</a> to understand how and where options exert an effect within the context of <strong>peapod</strong>'s control flow.</p>
+<h2 id="iface-stanza-options">iface stanza options</h2>
+<p>The options <strong><tt>set-mac</tt></strong> and <strong><tt>set-mac-from</tt></strong> cannot be combined on the same interface.</p>
+<dl>
+<dt><strong><tt>ingress</tt></strong></dt>
+<dd><pre><code><strong>ingress {</strong>
+    exec definition(s)
+    filter definition(s)
+<strong>};</strong></code></pre>
+<p>Stanza with options for an interface during the ingress phase.</p>
+<p>See also &quot;<strong><a href="#ingress-stanza-options">ingress stanza options</a></strong>&quot; below.</p>
+</dd>
+<dt><strong><tt>egress</tt></strong></dt>
+<dd><pre><code><strong>egress {</strong>
+    dot1q stanza OR no dot1q definition
+    filter definition(s)
+    exec definition(s)
+<strong>};</strong></code></pre>
+<p>Stanza with options for an interface during the egress phase.</p>
+<p>See also &quot;<strong><a href="#egress-stanza-options">egress stanza options</a></strong>&quot; below.</p>
+</dd>
+<dt><strong><tt>set-mac</tt></strong></dt>
+<dd><pre><code><strong>set-mac</strong> <em>xx:xx:xx:xx:xx:xx</em><strong>;</strong></code></pre>
+<p>Set a user-specified MAC address on an interface during program startup.</p>
+<p>Typically defined on an <em>authenticator-facing</em> interface with the address of a supplicant device. Once the supplicant establishes an EAPOL session, traffic originated by the device running <strong>peapod</strong> appears to be authorized (as long as MACsec is not in use).</p>
+<p>Cannot be combined on the same interface with <strong><tt>set-mac-from</tt></strong>.</p>
+</dd>
+<dt><strong><tt>set-mac-from</tt></strong></dt>
+<dd><pre><code><strong>set-mac-from</strong> <em>from-name</em><strong>;</strong></code></pre>
+<p>Automatically set the MAC address of an interface to that of the sender of the first EAPOL packet received on <em><tt>from-name</tt></em>. <em><tt>from-name</tt></em> must be the name of another interface configured with its own <strong><tt>iface</tt></strong> definition elsewhere in the config file.</p>
+<p>Similarly to <strong><tt>set-mac</tt></strong>, typically defined on an <em>authenticator-facing</em> interface, but with the name of a <em>supplicant-facing</em> interface. Once the supplicant establishes an EAPOL session, traffic originated by the device running <strong>peapod</strong> appears to be authorized (as long as MACsec is not in use).</p>
+<p>Cannot be combined on the same interface with <strong><tt>set-mac</tt></strong>.</p>
+</dd>
+<dt><strong><tt>promiscuous</tt></strong></dt>
+<dd><pre><code><strong>promiscuous;</strong></code></pre>
+<p>Put interface into promiscuous mode instead of the normal multicast mode during startup.</p>
+<p>Practically never needed. Only necessary when the interface or its drivers do not properly support Ethernet multicast (highly unlikely on a recent system).</p>
+</dd>
+</dl>
+<h2 id="ingress-stanza-options">ingress stanza options</h2>
+<p>Ingress script execution occurs before, and does not affect, ingress filtering.</p>
+<p>See also &quot;<strong><a href="#types">TYPES</a></strong>&quot; for a listing of the <em>type</em> keywords used with the <strong><tt>exec</tt></strong> and <strong><tt>filter</tt></strong> options.</p>
+<dl>
+<dt><strong><tt>exec</tt></strong></dt>
+<dd><pre><code><strong>exec</strong> <em>type script-path</em><strong>;</strong></code></pre>
+<p>Execute a script upon receiving a given <em>type</em> of EAPOL/EAP packet on an interface.</p>
+<p>See also &quot;<strong><a href="#scripts">SCRIPTS</a></strong>&quot; for more information on script execution.</p>
+</dd>
+<dt><strong><tt>filter</tt></strong></dt>
+<dd><pre><code><strong>filter</strong> <em>type</em>, <em>type</em>, <em>…</em><strong>;</strong>
+<strong>filter</strong> <em>type</em><strong>;</strong></code></pre>
+<p>Filter (drop) packets of the given <em>type</em>(s) received on an interface.</p>
+<p>In the ingress phase, filtered packets are dropped entirely and not proxied to other interfaces.</p>
+</dd>
+</dl>
+<h2 id="egress-stanza-options">egress stanza options</h2>
+<p>Egress filtering occurs before, and may prevent, egress script execution.</p>
+<p>See also &quot;<strong><a href="#types">TYPES</a></strong>&quot; for a listing of the <em>type</em> keywords used with the <strong><tt>filter</tt></strong> and <strong><tt>exec</tt></strong> options.</p>
+<dl>
+<dt><strong><tt>dot1q</tt></strong></dt>
+<dd><pre><code><strong>dot1q {</strong>
+    priority definition
+    drop-eligible definition
+    id definition
+<strong>};
+no dot1q;</strong></code></pre>
+<p>In the stanza form, if a packet ready to be sent on an interface has an existing 802.1Q VLAN tag (was received tagged on its ingress interface), modify the tag fields according to the <strong>dot1q stanza options</strong> contained in the stanza before sending it out. If it was received untagged, add a blank tag first and treat it as an existing tag.</p>
+<p>In the second form, prevent any packets from being sent on an interface tagged. Any existing tags are removed.</p>
+<p>Unlikely to be needed, but implemented for the sake of flexibility.</p>
+<p>See also &quot;<strong><a href="#dot1q-stanza-options">dot1q stanza options</a></strong>&quot; below.</p>
+</dd>
+<dt><strong><tt>filter</tt></strong></dt>
+<dd><pre><code><strong>filter</strong> <em>type</em>, <em>type</em>, <em>…</em><strong>;</strong>
+<strong>filter</strong> <em>type</em><strong>;</strong></code></pre>
+<p>Filter (drop) packets of the given <em>type</em>(s) received on an interface.</p>
+<p>In the egress phase, filtered packets are dropped only on the interface on which they are filtered, and may still be sent on other interfaces.</p>
+</dd>
+<dt><strong><tt>exec</tt></strong></dt>
+<dd><pre><code><strong>exec</strong> <em>type script-path</em><strong>;</strong></code></pre>
+<p>Execute a script immediately before a given <em>type</em> of EAPOL/EAP packet is sent on an interface.</p>
+<p>See also &quot;<strong><a href="#scripts">SCRIPTS</a></strong>&quot; for more information on script execution.</p>
+</dd>
+</dl>
+<h2 id="dot1q-stanza-options">dot1q stanza options</h2>
+<p>IEEE 802.1Q VLAN tags are 32 bits long, and contain several fields. They are inserted immediately after the destination and source MAC addresses in an Ethernet frame, and their main use is to signify to upstream networking equipment that the frame should be treated as belonging to a particular virtual LAN.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="6%"></col>
+<col width="47%"></col>
+<col width="9%"></col>
+<col width="3%"></col>
+<col width="35%"></col>
+</colgroup>
+<tbody>
+<tr class="header" style="background-color:#eee;">
+<th colspan="5"><strong>802.1Q VLAN Tag Format</strong> (cf. IEEE Std 802.1Q)</th>
+</tr>
+<tr class="odd">
+<td align="center"style="background-color:#ccc;"><strong>Bits</strong></td>
+<td align="center">16</td>
+<td align="center">3</td>
+<td align="center">1</td>
+<td align="center">12</td>
+</tr>
+<tr class="even">
+<td align="center"style="background-color:#ccc;"><strong>Field</strong></td>
+<td align="center">TPID</td>
+<td align="center">PCP</td>
+<td align="center">DEI</td>
+<td align="center">VID</td>
+</tr>
+<tr class="footer">
+<td style="border-style:none;" />
+<td align="center" style="background-color:#ccc;"><strong>Tag Protocol ID</strong><br />(always <tt>0x8100</tt>)</td>
+<td align="center" colspan="3" style="background-color:#ccc;"><strong>Tag Control Information<br />(configurable)</strong></td>
+</tbody>
+</table>
+<p>The IEEE 802.1X specification states that EAPOL packets may be encapsulated (contained) within &quot;priority tagged&quot; Ethernet frames. In this special use case of VLAN tags, the VID and DEI fields in the tag are set to 0, and only the three priority bits in the PCP field are meaningful. The value of the PCP field, 0 to 7, indicates the priority of the frame.</p>
+<p>As the 802.1X specification also states that both priority tagged and untagged EAPOL traffic should be understood and treated equally, most users will not need to define any of these options. For the sake of flexibility, <strong>peapod</strong> allows the 802.1Q Tag Control Information to be manipulated in proxied EAPOL traffic. This accounts for the possibility of misconfigured networks that, for example, expect EAPOL authentication to occur on a VLAN (with a specific VID).</p>
+<dl>
+<dt><strong><tt>priority</tt></strong></dt>
+<dd><pre><code><strong>priority</strong> <em>number</em><strong>;</strong></code></pre>
+<p>Set the Priority Code Point (PCP) field to a number from 0 to 7.</p>
+</dd>
+<dt><strong><tt>drop-eligible</tt></strong></dt>
+<dd><pre><code><strong>drop-eligible</strong> <em>number</em><strong>;</strong></code></pre>
+<p>Set the Drop Eligible Indicator (DEI) bit to 0 (off) or 1 (on).</p>
+<p>The meaning and function of this field has changed in recent versions of the 802.1Q standard. Practically never needed in any case.</p>
+</dd>
+<dt><strong><tt>id</tt></strong></dt>
+<dd><pre><code><strong>id</strong> <em>number</em><strong>;</strong></code></pre>
+<p>Set the VLAN Identifier (VID) field to a number from 0 to 4094.</p>
+</dd>
+</dl>
+<h1 id="types">TYPES</h1>
+<h2 id="type-keywords">type keywords</h2>
+<p>Below are the <em>type</em> keywords that may be used in <strong><tt>exec</tt></strong> and <strong><tt>filter</tt></strong> option definitions, and the corresponding EAPOL Packet Types/EAP Codes.</p>
+<table style="width:75%;">
+<colgroup>
+<col width="5%"></col>
+<col width="40%"></col>
+<col width="30%"></col>
+</colgroup>
+<thead>
+<tr class="header" style="background-color:#eee;">
+<th colspan="3"><strong>EAPOL Packet Types</strong> (cf. IEEE Std 802.1X-2010)</th>
+</tr>
+<tr class="header" style="background-color:#ccc;">
+<th align="left"><strong>Type</strong></th>
+<th align="left"><strong>Description</strong></th>
+<th align="left"><strong>Keyword</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0</td>
+<td align="left">EAPOL-EAP</td>
+<td align="left"><strong><tt>eap</tt></strong></td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">EAPOL-Start</td>
+<td align="left"><strong><tt>start</tt></strong></td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">EAPOL-Logoff</td>
+<td align="left"><strong><tt>logoff</tt></strong></td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">EAPOL-Key</td>
+<td align="left"><strong><tt>key</tt></strong></td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">EAPOL-Encapsulated-ASF-Alert</td>
+<td align="left"><strong><tt>encapsulated-asf-alert</tt></strong></td>
+</tr>
+<tr class="even">
+<td align="left">5</td>
+<td align="left">EAPOL-MKA</td>
+<td align="left"><strong><tt>mka</tt></strong></td>
+</tr>
+<tr class="odd">
+<td align="left">6</td>
+<td align="left">EAPOL-Announcement (Generic)</td>
+<td align="left"><strong><tt>announcement-generic</tt></strong></td>
+</tr>
+<tr class="even">
+<td align="left">7</td>
+<td align="left">EAPOL-Announcement (Specific)</td>
+<td align="left"><strong><tt>announcement-specific</tt></strong></td>
+</tr>
+<tr class="odd">
+<td align="left">8</td>
+<td align="left">EAPOL-Announcement-Req</td>
+<td align="left"><strong><tt>announcement-req</tt></strong></td>
+</tr>
+</tbody>
+</table>
+<p></p>
+<table>
+<thead>
+<tr class="header" style="background-color:#eee;">
+<th colspan="3"><strong>EAP Codes</strong> (cf. IETF RFC 2284)</th>
+</tr>
+<tr class="header" style="background-color:#ccc;">
+<th align="left"><strong>Code</strong></th>
+<th align="left"><strong>Description</strong></th>
+<th align="left"><strong>Keyword</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">EAP-Request</td>
+<td align="left"><strong><tt>request</tt></strong></td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">EAP-Response</td>
+<td align="left"><strong><tt>response</tt></strong></td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">EAP-Success</td>
+<td align="left"><strong><tt>success</tt></strong></td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">EAP-Failure</td>
+<td align="left"><strong><tt>failure</tt></strong></td>
+</tr>
+</tbody>
+</table>
+<p>Additionally, the keyword <strong><tt>all</tt></strong> means the same as all nine keywords corresponding to EAPOL Packet Types; i.e. the following:</p>
+<pre><code>exec eap &quot;/path/to/script.sh&quot;;
+exec start &quot;/path/to/script.sh&quot;;
+…
+exec announcement-req &quot;/path/to/script.sh&quot;;
+filter eap, start, …, announcement-req;</code></pre>
+<p>is equivalent to:</p>
+<pre><code>exec all &quot;/path/to/script.sh&quot;;
+filter all;</code></pre>
+<h2 id="packet-type-vs.-code">Packet Type vs. Code</h2>
+<p>As to the distinction between EAPOL Packet Types and EAP Codes, it is important to consider that EAP came first. EAPOL is an extension of the earlier EAP protocol that enables EAP to function over LANs.</p>
+<p>EAPOL packets have a Packet Type field to distinguish between different sorts of EAPOL packets. A Packet Type of 0, or EAPOL-EAP, indicates that an EAPOL packet encapsulates (contains) an EAP packet. Other Packet Types are reserved for various EAPOL control messages.</p>
+<p>In turn, EAP packets themselves have a Code field to distinguish between different sorts of EAP packets.</p>
+<h1 id="scripts">SCRIPTS</h1>
+<p>As explained in &quot;<strong><a href="#options">OPTIONS</a></strong>&quot;, the <strong><tt>script</tt></strong> option may be defined in an <strong><tt>ingress</tt></strong> or <strong><tt>egress</tt></strong> stanza and has the form:</p>
+<pre><code><strong>exec</strong> <em>type script-path</em><strong>;</strong></code></pre>
+<p><em><tt>script-path</tt></em> is an absolute and canonical path to a executable binary or script (a text file with &quot;<strong><tt>#!<em>interpreter-path</em></tt></strong>&quot; as its first line). Script paths are validated at startup to ensure that <strong>peapod</strong>'s effective user ID has execute permissions on them.</p>
+<p>Scripts run in a sanitized environment, but with a number of environment variables set. Depending upon why and when a script is being executed, the environment includes information such as the type of EAPOL packet being proxied, where the packet is in the program's control flow (ingress or egress phase), the interface on which the packet was received or is about to be sent, and the raw packet itself (Base64-encoded). Scripts can therefore do quite a few useful things, from logging failed authentications to saving packets to <em>.pcap</em> files.</p>
+<p>Given that scripts run in the background (without an attached terminal), <strong>peapod</strong> reports nonzero script exit codes to facilitate debugging. It is also possible for scripts to write their own logs, of course.</p>
+<h2 id="environment-variables-always-available-to-scripts">Environment variables always available to scripts</h2>
+<dl>
+<dt><strong><tt>PKT_TIME</tt></strong></dt>
+<dd><p>Packet receipt timestamp.</p>
+<p>Format: unixtime.microsecs</p>
+</dd>
+<dt><strong><tt>PKT_DEST</tt></strong>, <strong><tt>PKT_SOURCE</tt></strong></dt>
+<dd><p>Destination and source MAC addresses.</p>
+<p>Format: six colon-delimited hexdigit pairs</p>
+</dd>
+<dt><strong><tt>PKT_TYPE</tt></strong>, <strong><tt>PKT_TYPE_DESC</tt></strong></dt>
+<dd><p>EAPOL Packet Type and description.</p>
+<p>Format: number 0 to 9, text description</p>
+</dd>
+<dt><strong><tt>PKT_IFACE_ORIG</tt></strong>, <strong><tt>PKT_IFACE_MTU_ORIG</tt></strong></dt>
+<dd><p>Ingress interface (interface on which packet was originally received) and ingress interface MTU.</p>
+</dd>
+<dt><strong><tt>PKT_ORIG</tt></strong>, <strong><tt>PKT_LENGTH_ORIG</tt></strong></dt>
+<dd><p>Base64-encoded raw packet and its length in bytes as received on ingress interface.</p>
+</dd>
+<dt><strong><tt>PKT_IFACE</tt></strong>, <strong><tt>PKT_IFACE_MTU</tt></strong></dt>
+<dd><p>Current interface and current interface MTU.</p>
+<p>Values same as <strong><tt>…_ORIG</tt></strong> in ingress phase; will differ in egress phase (i.e. current interface will be an egress interface).</p>
+</dd>
+<dt><strong><tt>PKT</tt></strong>, <strong><tt>PKT_LENGTH</tt></strong></dt>
+<dd><p>Current Base64-encoded raw packet and its length in bytes.</p>
+<p>Values same as <strong><tt>…_ORIG</tt></strong> in ingress phase; will differ in egress phase if <strong><tt>dot1q</tt></strong> option is defined on current interface (i.e. current interface is configured to add a missing 802.1Q VLAN tag, or edit/remove an existing one).</p>
+</dd>
+</dl>
+<h2 id="environment-variables-conditionally-available-to-scripts">Environment variables conditionally available to scripts</h2>
+<dl>
+<dt><strong><tt>PKT_CODE</tt></strong>, <strong><tt>PKT_CODE_DESC</tt></strong>, <strong><tt>PKT_ID</tt></strong></dt>
+<dd><p>EAP Code, description, and EAP Identifier.</p>
+<p>Available if the EAPOL packet encapsulates (contains) an EAP packet; EAPOL Packet Type (&quot;<strong><tt>PKT_TYPE</tt></strong>&quot;) is 0.</p>
+<p>Format: number 1 to 4, text description, number 1 to 255</p>
+</dd>
+<dt><strong><tt>PKT_REQRESP_TYPE</tt></strong>, <strong><tt>PKT_REQRESP_DESC</tt></strong></dt>
+<dd><p>EAP-Request/EAP-Response Type and description.</p>
+<p>Available if the EAPOL packet encapsulates an EAP-Request or an EAP-Response; EAPOL Packet Type (&quot;<strong><tt>PKT_TYPE</tt></strong>&quot;) is 0 and EAP Code (&quot;<strong><tt>PKT_CODE</tt></strong>&quot;) is 1 or 2.</p>
+<p>Format: number 1 to 255, text description</p>
+</dd>
+<dt><strong><tt>PKT_DOT1Q_TCI_ORIG</tt></strong></dt>
+<dd><p>Raw 802.1Q VLAN Tag Control Information as received on ingress interface.</p>
+<p>Available if packet was received tagged.</p>
+<p>Format: four hexdigits</p>
+</dd>
+<dt><strong><tt>PKT_DOT1Q_TCI</tt></strong></dt>
+<dd><p>Current raw 802.1Q VLAN TCI.</p>
+<p>Available in ingress phase: if packet was received tagged, value same as <strong><tt>…_ORIG</tt></strong>; in egress phase: if packet is about to be sent tagged on current interface.</p>
+</dd>
+</dl>
+<p>Other environment variables may be available depending on the script interpreter or system-specific runtime factors.</p>
+<p>See also the example script <em>env.sh</em> to help determine the exact environment variables available to scripts.</p>
+<h1 id="examples">EXAMPLES</h1>
+<p>All example config files and scripts mentioned in this section are included in <strong>peapod</strong>'s shared resources in <em>/usr/share/peapod/examples</em>, as well as in the <em>doc/examples</em> subdirectory of the program sources.</p>
+<p>This HTML rendition of <strong>peapod.conf</strong>(5) also has links to the raw files/scripts.</p>
+<h2 id="minimum.conf"><a href="examples/minimum.conf">minimum.conf</a></h2>
+<p>Silently proxy all EAPOL packets between <strong>eth0</strong> and <strong>eth1</strong>.</p>
+<pre><code>iface eth0;
+iface eth1;</code></pre>
+<h2 id="portmirror.conf"><a href="examples/portmirror.conf">portmirror.conf</a></h2>
+<p>Packets received on a configured interface are proxied to all other configured interfaces, so creating a port mirror for the traffic between two interfaces is as easy as adding a third. We also ensure that any packets that somehow enter on <strong>eth2</strong> are not proxied to <strong>eth0</strong> and <strong>eth1</strong>.</p>
+<pre><code>iface eth0;
+iface eth1;
+
+# External protocol analyzer (e.g. a laptop running WireShark)
+iface eth2 {
+    ingress {
+    # Do not proxy any EAPOL packets received on eth2
+    filter all;
+    };
+};</code></pre>
+<h2 id="macspoof.conf"><a href="examples/macspoof.conf">macspoof.conf</a></h2>
+<p>Impersonate a supplicant from the network's point of view. Connectivity on <strong>eth0</strong> may be achieved by static IP, gateway, and DHCP assignment.</p>
+<pre><code># Network with an EAPOL authenticator
+iface eth0 {
+    # Manually spoof MAC address of supplicant
+    set-mac xx:xx:xx:xx:xx:xx;
+
+    # Alternative: learn supplicant's MAC address from the first
+    # EAPOL packet it sends, then clone the address to eth0
+    # set-mac-from eth1;
+};
+
+# Supplicant behind proxy
+iface eth1;</code></pre>
+<h2 id="pcap.conf"><a href="examples/pcap.conf">pcap.conf</a></h2>
+<p>Save all EAPOL packets proxied between <strong>eth0</strong> and <strong>eth1</strong> to a <em>.pcap</em> file.</p>
+<pre><code>iface eth0 {
+    ingress {
+        # Runs when any EAPOL packet received on eth0
+        exec all &quot;/path/to/<a href="examples/pcap.sh">pcap.sh</a>&quot;;
+    };
+};
+
+iface eth1 {
+    ingress {
+        # Runs when any EAPOL packet received on eth1
+        exec all &quot;/path/to/<a href="examples/pcap.ch">pcap.sh</a>&quot;;
+    };
+};</code></pre>
+<h2 id="advanced.conf"><a href="examples/advanced.conf">advanced.conf</a></h2>
+<p>Demonstrates more advanced usage. Impersonate a supplicant, also inserting priority tags into its EAPOL packets (authenticator is priority tagging but supplicant isn't; remedy the lack). Run scripts to &quot;borrow&quot; the DHCP assignment intended for supplicant and log any failed authentication attempts.</p>
+<pre><code># Network with an EAPOL authenticator
+iface eth0 {
+    ingress {
+        # Proxy only EAPOL-EAP (EAP packets) from authenticator
+        filter start, logoff, key, encapsulated-asf-alert, mka,
+               announcement-generic, announcement-specific,
+               announcement-req;
+
+        # Runs when EAP-Success received from authenticator
+        # restartdhcp.sh restarts the system's DHCP client on eth0
+        exec success &quot;/path/to/<a href="restartdhcp.sh">restartdhcp.sh</a>&quot;;
+
+        # Runs when EAP-Failure received
+        # exec failure &quot;/path/to/<a href="examples/logfailure.sh">logfailure.sh</a>&quot;;
+    };
+    egress {
+        # Priority tag all packets leaving eth0 with priority 7
+        dot1q {
+            priority 7;
+        };
+    };
+};
+
+# Supplicant behind proxy
+iface eth1 {
+    ingress {
+        # Proxy only EAPOL-EAP (EAP packets) from supplicant
+        # Equivalent ingress filters defined on both interfaces
+        filter start, logoff, key, encapsulated-asf-alert, mka;
+        filter announcement-generic, announcement-specific;
+        filter announcement-req;
+    };
+    egress {
+        # Runs when EAP-Failure sent to supplicant
+        # logfailure.sh is written so as to ensure that running
+        # it here as an egress script on eth1 is equivalent to
+        # running it above as an ingress script on eth0
+        exec failure &quot;/path/to/<a href="examples/logfailure.sh">logfailure.sh</a>&quot;;
+    };
+};</code></pre>
+<h1 id="files">FILES</h1>
+<p><em>/usr/sbin/peapod</em><br />
+<em>/etc/peapod.conf</em><br />
+<em>/var/log/peapod.log</em><br />
+<em>/var/run/peapod.pid</em></p>
+<h1 id="see-also">SEE ALSO</h1>
+<p><a href="http://kangtastic.github.io/peapod/peapod.8.html"><strong>peapod</strong>(8)</a></p>
+</body>
+</html>

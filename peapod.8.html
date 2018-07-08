@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="date" content="2018-06-30" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PEAPOD(8)</title>
+  <link href="data:text/css;charset=utf-8,html%20%7B%0Afont%2Dfamily%3A%20Georgia%2C%20Palatino%2C%20%27Palatino%20Linotype%27%2C%20Times%2C%20%27Times%20New%20Roman%27%2C%20serif%3B%0Afont%2Dsize%3A%20100%25%3B%0Aoverflow%2Dy%3A%20scroll%3B%0A%2Dwebkit%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%2Dms%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%0A%7D%0Abody%20%7B%0Amargin%3A%20auto%3B%0Apadding%2Dright%3A%201em%3B%0Apadding%2Dleft%3A%201em%3B%0Amax%2Dwidth%3A%2085%25%3B%0Aborder%2Dleft%3A%201px%20solid%20black%3B%0Aborder%2Dright%3A%201px%20solid%20black%3B%0Acolor%3A%20black%3B%0Afont%2Dsize%3A%2011px%3B%0Aline%2Dheight%3A%20140%25%3B%0Acolor%3A%20%23333%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230645ad%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%230b0080%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%2306e%3B%0A%7D%0Aa%3Aactive%20%7B%0Acolor%3A%20%23faa700%3B%0A%7D%0Aa%3Afocus%20%7B%0Aoutline%3A%20thin%20dotted%3B%0A%7D%0A%2A%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0A%2A%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%23000%3B%0A%7D%0Aa%3A%3A%2Dmoz%2Dselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Aa%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28255%2C%20255%2C%200%2C%200%2E3%29%3B%0Acolor%3A%20%230645ad%3B%0A%7D%0Acode%20%7B%0Awhite%2Dspace%3A%20pre%3B%0A%7D%0Att%20%7B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Apre%20%7B%0Afont%2Dfamily%3A%20monospace%2C%20monospace%3B%0A%5Ffont%2Dfamily%3A%20%27courier%20new%27%2C%20monospace%3B%0Amargin%3A%201em%3B%0Aborder%3A%201px%20dotted%20gray%3B%0Abackground%2Dcolor%3A%20%23ececec%3B%0Acolor%3A%20%23111111%3B%0Apadding%3A%200%2E5em%3B%0Afont%2Dsize%3A%2085%25%3B%0Aline%2Dheight%3A%20120%25%3B%0A%7D%0Ah1%20a%2C%20h2%20a%2C%20h3%20a%2C%20h4%20a%2C%20h5%20a%20%7B%0Atext%2Ddecoration%3A%20none%3B%0Acolor%3A%20%237a5ada%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0A%7D%0Ah1%2C%20h2%2C%20h3%2C%20h4%2C%20h5%20%7B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Aborder%2Dbottom%3A%201px%20dotted%20black%3B%0A%7D%0Ah1%20%7B%20font%2Dsize%3A%20170%25%3B%20%7D%0Ah2%20%7B%20font%2Dsize%3A%20150%25%3B%20%7D%0Ah3%20%7B%20font%2Dsize%3A%20130%25%3B%7D%0Ah4%2C%20h5%20%7B%0Afont%2Dsize%3A%20115%25%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0Ah1%2Etitle%20%7B%0Afont%2Dsize%3A%20250%25%3B%0Afont%2Dweight%3A%20bold%3B%0Apadding%2Dtop%3A%200%2E2em%3B%0Apadding%2Dbottom%3A%200%2E2em%3B%0Atext%2Dalign%3A%20left%3B%0Aborder%3A%20none%3B%0A%7D%0Adt%20code%20%7B%20font%2Dweight%3A%20bold%3B%20%7D%0Add%20p%20%7B%20margin%2Dtop%3A%200%3B%20%7D%0Atable%20%7B%20border%2Dcollapse%3A%20collapse%3B%20%7D%0Atable%20th%20%7B%20font%2Dweight%3A%20normal%3B%20%7D%0Atable%20td%2C%20table%20th%20%7B%0Aborder%3A%201px%20solid%20%23ddd%3B%0Apadding%3A%208px%3B%0A%7D%0A%23footer%20%7B%0Apadding%2Dtop%3A%201em%3B%0Afont%2Dsize%3A%2070%25%3B%0Acolor%3A%20gray%3B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20480px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2012px%3B%0A%7D%0A%7D%0A%40media%20only%20screen%20and%20%28min%2Dwidth%3A%20768px%29%20%7B%0Abody%20%7B%0Afont%2Dsize%3A%2014px%3B%0A%7D%0A%7D%0A%40media%20print%20%7B%0A%2A%20%7B%0Abackground%3A%20transparent%20%21important%3B%0Acolor%3A%20black%20%21important%3B%0Afilter%3A%20none%20%21important%3B%0A%2Dms%2Dfilter%3A%20none%20%21important%3B%0A%7D%0Abody%20%7B%0Afont%2Dsize%3A%2011pt%3B%0Amax%2Dwidth%3A%20100%25%3B%0A%7D%0Aa%2C%20a%3Avisited%20%7B%0Atext%2Ddecoration%3A%20underline%3B%0A%7D%0Ahr%20%7B%0Aheight%3A%201px%3B%0Aborder%3A%200%3B%0Aborder%2Dbottom%3A%201px%20solid%20black%3B%0A%7D%0Aa%5Bhref%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28href%29%20%22%29%22%3B%0A%7D%0Aabbr%5Btitle%5D%3Aafter%20%7B%0Acontent%3A%20%22%20%28%22%20attr%28title%29%20%22%29%22%3B%0A%7D%0A%2Eir%20a%3Aafter%2C%20a%5Bhref%5E%3D%22javascript%3A%22%5D%3Aafter%2C%20a%5Bhref%5E%3D%22%23%22%5D%3Aafter%20%7B%0Acontent%3A%20%22%22%3B%0A%7D%0Apre%2C%20blockquote%20%7B%0Aborder%3A%201px%20solid%20%23999%3B%0Apadding%2Dright%3A%201em%3B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Atr%2C%20img%20%7B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Aimg%20%7B%0Amax%2Dwidth%3A%20100%25%20%21important%3B%0A%7D%0A%40page%20%3Aleft%20%7B%0Amargin%3A%2015mm%2020mm%2015mm%2010mm%3B%0A%7D%0A%40page%20%3Aright%20%7B%0Amargin%3A%2015mm%2010mm%2015mm%2020mm%3B%0A%7D%0Ap%2C%20h2%2C%20h3%20%7B%0Aorphans%3A%203%3B%0Awidows%3A%203%3B%0A%7D%0Ah2%2C%20h3%20%7B%0Apage%2Dbreak%2Dafter%3A%20avoid%3B%0A%7D%0A%7D%0A" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">PEAPOD(8)</h1>
+<h3 class="date">June 30, 2018</h3>
+</div>
+<div id="TOC">
+<ul>
+<li><a href="#name">NAME</a></li>
+<li><a href="#synopsis">SYNOPSIS</a></li>
+<li><a href="#description">DESCRIPTION</a></li>
+<li><a href="#operation">OPERATION</a><ul>
+<li><a href="#ingress-phase">ingress phase</a></li>
+<li><a href="#egress-phase">egress phase</a></li>
+</ul></li>
+<li><a href="#examples">EXAMPLES</a></li>
+<li><a href="#options">OPTIONS</a></li>
+<li><a href="#files">FILES</a></li>
+<li><a href="#bugs">BUGS</a></li>
+<li><a href="#see-also">SEE ALSO</a></li>
+<li><a href="#authors">AUTHORS</a></li>
+</ul>
+</div>
+<h1 id="name">NAME</h1>
+<p>peapod - EAPOL Proxy Daemon</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<p><strong><tt>peapod [-dtsqCoh] [-vvv] [-p <em>pidfile</em>] [-c <em>configfile</em>] [-l [<em>logfile</em>]]</tt></strong></p>
+<h1 id="description">DESCRIPTION</h1>
+<p><strong>peapod</strong> is a daemon that proxies <strong>IEEE 802.1X Extensible Authentication Protocol over LAN (EAPOL)</strong> packets between Ethernet interfaces. It supports a few tricks on a per-interface basis, so it may be considered a (highly) rudimentary general-purpose transparent bridging firewall/rewriting proxy for EAPOL.</p>
+<p><strong>EAPOL</strong> is a <strong>port-based network access control (PNAC)</strong> mechanism ensuring that only authorized devices are allowed to use a network. In a nutshell, EAPOL blocks regular network traffic, such as TCP/IP, from traversing the physical port (e.g. on a switch) to which a client is connected until the client successfully authenticates and establishes an EAPOL session.</p>
+<p>Abilities surpassing those of a simple proxy include:</p>
+<dl>
+<dt><strong>EAPOL/EAP classification, filtering, and script execution</strong></dt>
+<dd><strong>Proxy only certain kinds of packets</strong> between certain interfaces and <strong>execute user-defined scripts</strong> when proxying recognized packet types. This is supported for the nine EAPOL Packet Types defined by IEEE Std 802.1X-2010 and the four EAP Codes defined by IETF RFC 2284.
+</dd>
+<dt><strong>802.1Q VLAN priority tag handling</strong></dt>
+<dd><strong>Add, modify, or remove priority tags</strong> in proxied EAPOL packets. (In fact, more than just the Priority Code Point field in the 802.1Q tag may be manipulated.)
+</dd>
+<dt><strong>MAC spoofing</strong></dt>
+<dd>Change interface MAC addresses to a <strong>user-defined address</strong>, or to the <strong>address of an actual supplicant</strong> behind the proxy learned during runtime. This enables the device running <strong>peapod</strong> to masquerade as the supplicant and originate what appears to be authorized network traffic once the supplicant establishes an EAPOL session (as long as MACsec is not in use).
+</dd>
+</dl>
+<h1 id="operation">OPERATION</h1>
+<p>At startup, <strong>peapod</strong> reads its config file to determine the network interfaces on which it should listen for EAPOL packets and how packets should be received and sent on those interfaces. &quot;EAPOL packet&quot; in this sense is an Ethernet frame with the EAPOL EtherType of <strong><tt>0x888e</tt></strong> encapsulating either an EAP packet or certain EAPOL control messages.</p>
+<p>See <a href="http://kangtastic.github.io/peapod/peapod.conf.5.html"><strong>peapod.conf</strong>(5)</a> for config file semantics and syntax.</p>
+<p>The remainder of this section provides an overview of <strong>peapod</strong>'s control flow once it begins proxying packets proper, and is intended to assist in the creation of config files. This can be divided into <strong>ingress</strong> and <strong>egress</strong> phases.</p>
+<h2 id="ingress-phase">ingress phase</h2>
+<p><strong>peapod</strong> waits until an EAPOL packet arrives on any configured interface, which then becomes the <strong>ingress interface</strong>.</p>
+<p>The following is then performed:</p>
+<blockquote>
+<ol style="list-style-type: decimal">
+<li>If the packet is the first packet to be received on the ingress interface, and <em>another</em> interface is configured with &quot;<strong><tt>set-mac-from</strong> <em>ingress-interface-name</em></tt><strong>;</strong>&quot;:
+<ul>
+<li>Change the <em>other</em> interface's MAC address to that of the packet's sender.</li>
+<li>Drop the packet.</li>
+</ul></li>
+<li>Determine the type of the packet.
+<ul>
+<li>Check for <strong>ingress scripts</strong> and/or <strong>ingress filters</strong> (scripts/filters configured as <strong>ingress stanza options</strong> on the ingress interface) that match the packet type.</li>
+</ul></li>
+<li>Execute any matching ingress script.</li>
+<li>Apply any matching ingress filter (i.e. drop the packet).</li>
+</ol>
+</blockquote>
+<p>Dropping a packet in this phase means immediately discarding it and returning to the beginning of the ingress phase.</p>
+<p>If the packet was not dropped, <strong>peapod</strong> moves on to the egress phase.</p>
+<h2 id="egress-phase">egress phase</h2>
+<p>The received packet is proxied to all configured interfaces except for the ingress interface, which then become the <strong>egress interfaces</strong>.</p>
+<p>For each egress interface, the following is then performed:</p>
+<blockquote>
+<ol style="list-style-type: decimal">
+<li>Make a copy of the packet to be used with the current egress interface.</li>
+<li>If an existing 802.1Q VLAN tag in the packet should be manipulated or removed, or one should be added (as configured in a <strong><tt>dot1q</tt></strong> option on the current egress interface):
+<ul>
+<li>Make the necessary changes to the copy.</li>
+</ul></li>
+<li>Determine the type of the packet.
+<ul>
+<li>Check for <strong>egress filters</strong> and/or <strong>egress scripts</strong> (filters/scripts configured as <strong>egress stanza options</strong> on the current egress interface) that match the packet type.</li>
+</ul></li>
+<li>Apply any matching egress filter (i.e. drop the packet).</li>
+<li>Execute any matching egress script.</li>
+<li>Send the (copy of the) packet on the current egress interface.</li>
+</ol>
+</blockquote>
+<p>Dropping a packet in this phase means discarding the copy and moving on to the next egress interface.</p>
+<p>At the end of the egress phase, the packet may have been proxied to one or more egress interfaces, and <strong>peapod</strong> returns to the beginning of the ingress phase to listen for more packets.</p>
+<h1 id="examples">EXAMPLES</h1>
+<p>Example config files and scripts are included in <strong>peapod</strong>'s shared resources in <em>/usr/share/peapod/examples</em>, as well as in the <em>doc/examples</em> subdirectory of the program sources.</p>
+<p>See <a href="http://kangtastic.github.io/peapod/peapod.conf.5.html"><strong>peapod.conf</strong>(5)</a> for config file semantics and syntax.</p>
+<h1 id="options">OPTIONS</h1>
+<p>All short options except <strong><tt>-v</tt></strong> also have a long form listed.<br />
+Mandatory arguments are mandatory for both forms.</p>
+<dl>
+<dt><strong><tt>-d</tt>, <tt>--daemon</tt></strong></dt>
+<dd><p>Run as a daemon. Logging to the console (<strong>stdout</strong> and <strong>stderr</strong>) is disabled. Sets <strong><tt>-s</tt></strong> and causes a PID file to be used.</p>
+</dd>
+<dt><strong><tt>-p <em>pidfile</em></tt>, <tt>--pid <em>pidfile</em></tt></strong></dt>
+<dd><p>Specify a different PID file than <em>/var/run/peapod.pid</em>, the default. Sets <strong><tt>-d</tt></strong>.</p>
+</dd>
+<dt><strong><tt>-c <em>configfile</em></tt>, <tt>--config <em>configfile</em></tt></strong></dt>
+<dd><p>Specify a different config file than <em>/etc/peapod.conf</em>, the default.<br /><br />
+	A config file is required. See <a href="http://kangtastic.github.io/peapod/peapod.conf.5.html"><strong>peapod.conf</strong>(5)</a> for more details.</p>
+</dd>
+<dt><strong><tt>-t</tt>, <tt>--test</tt></strong></dt>
+<dd><p>Test the config file and exit.</p>
+</dd>
+<dt><strong><tt>-l</tt></strong> <tt>[<em>logfile</em>]</tt>, <strong><tt>--log</tt></strong> <tt>[<em>logfile</em>]</tt></dt>
+<dd><p>Enable logging to a log file. Optionally, specify a different log file than <em>/var/log/peapod.log</em>, the default.</p>
+</dd>
+<dt><strong><tt>-s</tt>, <tt>--syslog</tt></strong></dt>
+<dd><p>Enable logging to syslog. Set automatically by <strong><tt>-d</tt></strong> and <strong><tt>-p</tt></strong>.</p>
+</dd>
+<dt><strong><tt>-v</tt></strong></dt>
+<dd><p>Increase log verbosity. Can be specified up to three times. Overridden by the <strong><tt>verbosity</tt></strong> option in the config file.</p>
+	<p>With <strong><tt>-v</tt></strong>, informational messages are also logged.<br />
+	With <strong><tt>-vv</tt></strong>, so are debug messages.<br />
+	With <strong><tt>-vvv</tt></strong>, so are low-level debug messages such as Ethernet frame hexdumps. (As these last are extremely voluble, they are logged only to the console and/or to a log file, and never to syslog.)</p>
+</dd>
+<dt><strong><tt>-q</tt>, <tt>--quiet-script</tt></strong></dt>
+<dd><p>Treat script execution notices as informational, so that they are logged only if at least one <strong><tt>-v</tt></strong> was specified.</p>
+</dd>
+<dt><strong><tt>-C</tt>, <tt>--color</tt></strong></dt>
+<dd><p>Colorize logging output to console.</p>
+</dd>
+<dt><strong><tt>-o</tt>, <tt>--oneshot</tt></strong></dt>
+<dd><p>Do not restart the proxy after certain errors occur, such as a configured interface going down unexpectedly.</p>
+	<p>The default error handling behavior once the proxy is running is to wait ten seconds between unlimited restart attempts.</p>
+</dd>
+<dt><strong><tt>-h</tt>, <tt>--help</tt></strong></dt>
+<dd>Print a help message to the console.
+</dd>
+</dl>
+<h1 id="files">FILES</h1>
+<p><em>/usr/sbin/peapod</em><br />
+<em>/etc/peapod.conf</em><br />
+<em>/var/log/peapod.log</em><br />
+<em>/var/run/peapod.pid</em></p>
+<h1 id="bugs">BUGS</h1>
+<p>Definitely. For suggestions, bug reports, contributions, pull requests, etc., please contact the author via the project page at <a href="https://github.com/kangtastic/peapod">https://github.com/kangtastic/peapod</a> or via e-mail.</p>
+<p>While not a bug per se, note that <strong>peapod</strong>'s usefulness is greatly limited on MACsec-enabled networks.</p>
+<h1 id="see-also">SEE ALSO</h1>
+<p><a href="http://kangtastic.github.io/peapod/peapod.conf.5.html"><strong>peapod.conf</strong>(5)</a></p>
+<h1 id="authors">AUTHORS</h1>
+<p>kangtastic <script type="text/javascript">
+<!--
+h='&#x67;&#x6d;&#x61;&#x69;&#108;&#46;&#x63;&#x6f;&#x6d;';a='&#64;';n='&#x6b;&#x61;&#110;&#x67;&#x73;&#x63;&#x69;&#110;&#x61;&#116;&#x65;';e=n+a+h;
+document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'" clas'+'s="em' + 'ail">'+e+'<\/'+'a'+'>');
+// -->
+</script><noscript>kangscinate at gmail dot com</noscript></p>
+</body>
+</html>
