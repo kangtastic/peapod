@@ -1,6 +1,6 @@
 [Unit]
 Description=EAPOL Proxy Daemon
-Documentation=man:peapod(8)
+Documentation=man:peapod(8) man:peapod.conf(5)
 After=network.target
 
 [Service]

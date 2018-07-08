@@ -20,7 +20,8 @@ SBIN			= $(PREFIX)/sbin
 SHARE			= $(PREFIX)/share
 
 CC			= gcc
-CFLAGS			= -I$(IDIR) -Wall -Wextra -pedantic --std=gnu11 -O3
+CFLAGS			?= -O2 -fstack-protector-strong -Wall -Wextra -pedantic -Wformat -Werror=format-security -fPIC -pie -Wl,-z,relro -Wl,-z,now --std=gnu11
+CFLAGS			+= -I$(IDIR)
 
 YACC			= bison
 LEX			= flex
@@ -40,7 +41,7 @@ OBJS			= $(patsubst %,$(ODIR)/%,$(_OBJS))
 .PHONY:			all debug
 all:			peapod doc service
 
-debug:			CFLAGS := $(filter-out -O3,$(CFLAGS)) -g
+debug:			CFLAGS := $(filter-out -O2,$(CFLAGS)) -g
 debug:			cleanall peapod
 
 .PHONY:			doc
