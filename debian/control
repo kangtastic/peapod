@@ -14,7 +14,6 @@ Description: EAPOL Proxy Daemon
  Authentication Protocol over LAN (EAPOL) packets between Ethernet
  interfaces.
  .
- .
  It supports a few tricks on a per-interface basis, so it may be
  considered a (highly) rudimentary general-purpose
  transparent bridging firewall/rewriting proxy for EAPOL.

@@ -2,6 +2,6 @@
 
 set -e
 
-if [ "$1" = purge ] && [ -f "/etc/peapod.conf" ]
+if [ "$1" = purge ] && [ -f "/etc/peapod.conf" ]; then
   rm -f "/etc/peapod.conf"
 fi
