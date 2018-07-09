@@ -4,9 +4,12 @@
 #
 # Usage: buildrpm.sh [sign]
 
+NAME=peapod
 VERSION=$(grep -P 'Version:' peapod.spec | awk '{print $2}')
-SRCNAME="peapod-$VERSION"
-SRCTGZ="$SRCNAME.tar.gz"
+RELEASE=$(grep -P 'Release:' peapod.spec | awk '{print $2}')
+ARCH=$(uname -m)
+SRCNAME=$NAME-$VERSION
+SRCTGZ=$SRCNAME.tar.gz
 
 mkdir -p ~/rpmbuild/SOURCES
 
@@ -19,9 +22,9 @@ rpmbuild -bs peapod.spec
 rpmbuild -bb peapod.spec
 
 if [ "$1" = "sign" ]; then
-	RELEASE=$(grep -P 'Release:' peapod.spec | grep -Po '\d(?=%)')
-	ARCH=$(uname -m)
-	rpm --addsign ~/rpmbuild/RPMS/$ARCH/$SRCNAME-$RELEASE.*.$ARCH.rpm
-	rpm --addsign ~/rpmbuild/SRPMS/$SRCNAME-$RELEASE.*.src.rpm
+	for f in ~/rpmbuild/RPMS/$ARCH/$NAME*-$VERSION-$RELEASE.$ARCH.rpm ~/rpmbuild/SRPMS/$NAME-$VERSION-$RELEASE.src.rpm; do
+		rpm --addsign $f
+		rpmlint $f
+	done
 fi
 

@@ -1,7 +1,7 @@
 Summary: EAPOL Proxy Daemon
 Name: peapod
 Version: 0.1.0
-Release: 1%{?dist}
+Release: 1
 License: GPLv3+
 Group: System Environment/Daemons
 URL: http://github.com/kangtastic/%{name}
@@ -36,6 +36,14 @@ make %{?_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install
+# rpmlint: resolve "doc-file-dependency"
+chmod -x %{buildroot}%{_datadir}/%{name}/examples/*.sh
+# add dummy config file
+mkdir -p %{buildroot}%{_sysconfdir}
+echo "# Dummy config file for peapod - EAPOL Proxy Daemon" >> %{buildroot}%{_sysconfdir}/%{name}.conf
+echo "" >> %{buildroot}%{_sysconfdir}/%{name}.conf
+echo "# iface eth0;" >> %{buildroot}%{_sysconfdir}/%{name}.conf
+echo "# iface eth1;" >> %{buildroot}%{_sysconfdir}/%{name}.conf
 
 %postun
 %systemd_postun %{name}.service
@@ -50,6 +58,7 @@ make DESTDIR=%{buildroot} install
 %license LICENSE
 %doc %{_datadir}/%{name}/*.html
 %doc %{_datadir}/%{name}/*/*
+%config(noreplace) %{_sysconfdir}/peapod.conf
 %{_unitdir}/%{name}.service
 %{_mandir}/*/*
 %{_sbindir}/%{name}
