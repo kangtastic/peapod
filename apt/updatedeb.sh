@@ -23,12 +23,9 @@ for f in $DEBS/${NAME}_*_$ARCH.deb; do
 	fi
 done
 
-pushd $DEST
+dpkg-scanpackages $ARCH /dev/null | tee $ARCH/Packages | gzip -9c > $ARCH/Packages.gz
 
-dpkg-scanpackages . /dev/null | tee Packages | gzip -9c > Packages.gz
+apt-ftparchive release $ARCH /dev/null > $ARCH/Release
 
-apt-ftparchive release . > Release
+gpg --detach-sign --armor --local-user $GPGKEY --yes --output $ARCH/Release.gpg $ARCH/Release
 
-gpg --detach-sign --armor --local-user $GPGKEY --yes --output Release.gpg Release
-
-popd

@@ -4,7 +4,7 @@ Architecture: amd64
 Maintainer: James Seo <kangscinate@gmail.com>
 Installed-Size: 165
 Depends: libc6 (>= 2.16)
-Filename: ./peapod_0.1.0-1_amd64.deb
+Filename: amd64/peapod_0.1.0-1_amd64.deb
 Size: 51506
 MD5sum: d61556b3eebf072da86160cef80806d4
 SHA1: 3606fef6c2a45f4c0a9f33a2a3efd9b266c2fa57
