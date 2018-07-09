@@ -1,0 +1,7 @@
+<map id="include/iface.h" name="include/iface.h">
+<area shape="rect" id="node2" href="$iface_8c.html" title="Network interface and socket setup. " alt="" coords="7,80,90,107"/>
+<area shape="rect" id="node3" href="$process_8h.html" title="Function prototypes for process.c, packet direction symbols. " alt="" coords="113,80,237,107"/>
+<area shape="rect" id="node4" href="$packet_8c.html" title="EAPOL packet operations. " alt="" coords="5,155,100,181"/>
+<area shape="rect" id="node5" href="$process_8c.html" title="Process an EAPOL packet. " alt="" coords="125,155,226,181"/>
+<area shape="rect" id="node6" href="$proxy_8c.html" title="Main event loop, related operations. " alt="" coords="251,155,337,181"/>
+</map>

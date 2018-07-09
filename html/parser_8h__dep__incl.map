@@ -1,0 +1,10 @@
+<map id="include/parser.h" name="include/parser.h">
+<area shape="rect" id="node2" href="$peapod_8c.html" title="EAPOL Proxy Daemon. " alt="" coords="5,80,103,107"/>
+<area shape="rect" id="node3" href="$iface_8h.html" title="Function prototypes for iface.c. " alt="" coords="194,80,301,107"/>
+<area shape="rect" id="node9" href="$packet_8h.html" title="Function prototypes for packet.c, EAPOL/EAP data structures. " alt="" coords="65,155,182,181"/>
+<area shape="rect" id="node4" href="$iface_8c.html" title="Network interface and socket setup. " alt="" coords="206,155,289,181"/>
+<area shape="rect" id="node5" href="$process_8h.html" title="Function prototypes for process.c, packet direction symbols. " alt="" coords="312,155,436,181"/>
+<area shape="rect" id="node6" href="$packet_8c.html" title="EAPOL packet operations. " alt="" coords="80,229,175,256"/>
+<area shape="rect" id="node7" href="$process_8c.html" title="Process an EAPOL packet. " alt="" coords="202,229,303,256"/>
+<area shape="rect" id="node8" href="$proxy_8c.html" title="Main event loop, related operations. " alt="" coords="329,229,416,256"/>
+</map>

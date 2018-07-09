@@ -1,0 +1,8 @@
+<map id="src/proxy.c" name="src/proxy.c">
+<area shape="rect" id="node7" href="$args_8h.html" title="Function prototypes for args.c, global program arguments data structure. " alt="" coords="531,229,589,256"/>
+<area shape="rect" id="node9" href="$log_8h.html" title="Function prototypes for log.c, global logging macros. " alt="" coords="529,80,580,107"/>
+<area shape="rect" id="node12" href="$packet_8h.html" title="Function prototypes for packet.c, EAPOL/EAP data structures. " alt="" coords="753,80,825,107"/>
+<area shape="rect" id="node18" href="$process_8h.html" title="Function prototypes for process.c, packet direction symbols. " alt="" coords="877,80,955,107"/>
+<area shape="rect" id="node15" href="$parser_8h.html" title="Function prototypes for parser.y, config&#45;related magic numbers and data structures. " alt="" coords="892,229,961,256"/>
+<area shape="rect" id="node19" href="$iface_8h.html" title="Function prototypes for iface.c. " alt="" coords="964,155,1025,181"/>
+</map>

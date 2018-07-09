@@ -1,0 +1,6 @@
+<map id="include/defaults.h" name="include/defaults.h">
+<area shape="rect" id="node2" href="$args_8c.html" title="Parse command&#45;line arguments, set up the global program arguments data structure. ..." alt="" coords="5,80,85,107"/>
+<area shape="rect" id="node3" href="$daemonize_8c.html" title="Daemonize the program. " alt="" coords="109,80,227,107"/>
+<area shape="rect" id="node4" href="$log_8c.html" title="Logging operations. " alt="" coords="252,80,324,107"/>
+<area shape="rect" id="node5" href="$peapod_8c.html" title="EAPOL Proxy Daemon. " alt="" coords="349,80,446,107"/>
+</map>

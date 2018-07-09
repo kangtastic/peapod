@@ -1,0 +1,4 @@
+<map id="ingress_t" name="ingress_t">
+<area shape="rect" id="node2" href="$structaction__t.html" title="Scripts to execute on EAPOL Packet Type or EAP Code. " alt="" coords="5,5,73,32"/>
+<area shape="rect" id="node3" href="$structfilter__t.html" title="Bitmasks for filtering on EAPOL Packet Type or EAP Code. " alt="" coords="98,5,157,32"/>
+</map>

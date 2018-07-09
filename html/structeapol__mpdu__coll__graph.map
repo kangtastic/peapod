@@ -1,0 +1,4 @@
+<map id="eapol_mpdu" name="eapol_mpdu">
+<area shape="rect" id="node2" href="$structeapol__eap.html" title="EAPOL&#45;EAP (EAP Packet) format. " alt="" coords="5,5,87,32"/>
+<area shape="rect" id="node3" href="$structeapol__key.html" title="EAPOL&#45;Key (Key Descriptor) format. " alt="" coords="111,5,192,32"/>
+</map>
