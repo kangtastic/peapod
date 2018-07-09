@@ -1,0 +1,6 @@
+[peapod]
+name=peapod - x86_64
+baseurl=https://kangtastic.github.io/peapod/rpm/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://kangtastic.github.io/peapod/pubkey.gpg
