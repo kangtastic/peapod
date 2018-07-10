@@ -35,11 +35,17 @@ firewall/rewriting proxy for EAPOL.
 Abilities surpassing those of a simple proxy include:
 
 ### EAPOL/EAP classification, filtering, and script execution
+![Demo: Filtering and script execution](https://raw.githubusercontent.com/kangtastic/peapod/master/doc/img/README-classify.gif "Restrict traffic with filters, extend functionality with scripts")
+
 **Proxy only certain kinds of packets** between certain interfaces and **execute user-defined scripts** when proxying recognized packet types. This is supported for the nine EAPOL Packet Types defined by IEEE Std 802.1X-2010 and the four EAP Codes defined by IETF RFC 2284.
 ### VLAN priority tag handling
+![Demo: 802.1Q VLAN tag manipulation](https://raw.githubusercontent.com/kangtastic/peapod/master/doc/img/README-dot1q.gif "Insertion of a priority tag, priority 7")
+
 **Add, modify, or remove priority tags** in proxied EAPOL packets. (In fact, more than just the Priority Code Point field in the 802.1Q tag may be manipulated.)
 ### MAC spoofing
-Change interface MAC addresses to a **user-defined address**, or to the **address of an actual supplicant** behind the proxy learned during runtime. This enables the device running **peapod** to masquerade as the supplicant and originate what appears to be authorized network traffic once the supplicant establishes an EAPOL session (as long as MACsec is not in use).
+![Demo: MAC spoofing](https://raw.githubusercontent.com/kangtastic/peapod/master/doc/img/README-macspoof.gif "Automatic MAC address spoofing")
+
+Change interface MAC to a **user-defined address**, or to the **address of an actual supplicant** behind the proxy learned during runtime. This enables the device running **peapod** to masquerade as the supplicant and originate what appears to be authorized network traffic once the supplicant establishes an EAPOL session (as long as MACsec is not in use).
 
 ## Getting started
 ### Documentation
@@ -84,7 +90,7 @@ Place a config file at `/etc/peapod.conf`, e.g.:
 This is the minimum required config and silently proxies all EAPOL packets between **eth0** and **eth1**.
 
 #### Anything more
-See the manual pages for much more extensive documentation.
+See the [manual pages](#manual-pages) for much more extensive documentation.
 
 ### Usage
 Start **peapod**:
@@ -125,7 +131,7 @@ Prerequisite: a recent-ish version of `doxygen`.
     $ make html
 
 Also cleans any compiled files and existing source code documentation.  
-The results will look like [these](https://kangtastic.github.io/peapod/html/index.html) and are at `html/index.html` in the program sources.
+The result can be found at `html/index.html` in the program sources and will look like [this](https://kangtastic.github.io/peapod/html/index.html).
 
 #### Clean
 

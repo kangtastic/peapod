@@ -173,7 +173,7 @@ void proxy(struct iface_t *ifaces)
 			goto proxy_error;
 		}
 
-		debug("got an EPOLLIN event, interface '%s'", iface->name);
+		debuglow("got an EPOLLIN event, interface '%s'", iface->name);
 
 		pkt = packet_recvmsg(iface);
 
