@@ -9,7 +9,6 @@
 %define parse.error verbose
 %{
 #include <stdio.h>
-//#include <stdlib.h>			/* TODO: remove if really unneeded */
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>

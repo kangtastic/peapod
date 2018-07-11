@@ -135,12 +135,12 @@ static void decode(struct peapod_packet packet)
 	l += snprintf(buf + l, sizeof(buf) - l, " > %s",
 		      iface_strmac(packet.h_dest));
 
-	/* "..., vlan 0 (prio 6, dei unset)" */
+	/* "..., vlan 0 (prio 6, dei)" */
 	if (packet.vlan_valid == 1)
 		l += snprintf(buf + l, sizeof(buf) - l,
-			      ", vlan %d (prio %d, dei %sset)",
+			      ", vlan %d (prio %d%s)",
 			      packet.tci.vid, packet.tci.pcp,
-			      packet.tci.dei == 1 ? "" : "un");
+			      packet.tci.dei == 1 ? ", dei" : "");
 
 	/* "..., EAPOL-EAP (0) v2", "..., EAPOL-Key (3) v1", */
 	l += snprintf(buf + l, sizeof(buf) - l, ", %s (%d) v%d",
@@ -178,7 +178,8 @@ static void decode(struct peapod_packet packet)
 			l += snprintf(buf + l, sizeof(buf) - l,
 				      ", index %d (%scast)",
 				      key->key_index & 0x7f,
-				      key->key_index & 0x80 ? "uni" : "broad");
+				      (key->key_index & 0x80) ?
+				      "uni" : "broad");
 		} else {
 			/* "..., type IEEE 802.11 (2)" */
 			l += snprintf(buf + l, sizeof(buf) - l,
@@ -395,7 +396,7 @@ int packet_send(struct peapod_packet packet, struct iface_t *iface)
 	ssize_t len = write(iface->skt, start, packet.len);
 
 	if (len == -1) {
-		ecrit("cannot send, interface '%s':%s", iface->name);
+		ecrit("cannot send, interface '%s': %s", iface->name);
 		return -1;
 	}
 	else if (len != packet.len) {
@@ -488,7 +489,8 @@ struct peapod_packet packet_recvmsg(struct iface_t *iface) {
 		debuglow("received a PACKET_AUXDATA cmsg:");
 		debuglow("\taux=%p {", aux);
 		debuglow("\t  tp_status=0x%.08x (TP_STATUS_VLAN_VALID=%s)",
-			 aux->tp_status, aux->tp_status & TP_STATUS_VLAN_VALID ?
+			 aux->tp_status,
+			 (aux->tp_status & TP_STATUS_VLAN_VALID) ?
 			 "y" : "n");
 		debuglow("\t  tp_len=%d", aux->tp_len);
 		debuglow("\t  tp_snaplen=%d", aux->tp_snaplen);
