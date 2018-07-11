@@ -128,9 +128,18 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <p>"EAPOL packet" in this sense is an Ethernet frame with the EAPOL EtherType of <b>0x888e</b> encapsulating either an EAP packet or certain EAPOL control messages.</p>
 <p>Abilities surpassing those of a simple proxy include:</p>
 <h3>EAPOL/EAP classification, filtering, and script execution</h3>
+<div class="image">
+<img src="https://raw.githubusercontent.com/kangtastic/peapod/master/doc/img/README-classify.gif"  alt="Demo: Filtering and script execution" title="Restrict traffic with filters, extend functionality with scripts"/>
+</div>
 <p><b>Proxy only certain kinds of packets</b> between certain interfaces and <b>execute user-defined scripts</b> when proxying recognized packet types. This is supported for the nine EAPOL Packet Types defined by IEEE Std 802.1X-2010 and the four EAP Codes defined by IETF RFC 2284. </p><h3>VLAN priority tag handling</h3>
+<div class="image">
+<img src="https://raw.githubusercontent.com/kangtastic/peapod/master/doc/img/README-dot1q.gif"  alt="Demo: 802.1Q VLAN tag manipulation" title="Insertion of a priority tag, priority 7"/>
+</div>
 <p><b>Add, modify, or remove priority tags</b> in proxied EAPOL packets. (In fact, more than just the Priority Code Point field in the 802.1Q tag may be manipulated.) </p><h3>MAC spoofing</h3>
-<p>Change interface MAC addresses to a <b>user-defined address</b>, or to the <b>address of an actual supplicant</b> behind the proxy learned during runtime. This enables the device running <b>peapod</b> to masquerade as the supplicant and originate what appears to be authorized network traffic once the supplicant establishes an EAPOL session (as long as MACsec is not in use).</p>
+<div class="image">
+<img src="https://raw.githubusercontent.com/kangtastic/peapod/master/doc/img/README-macspoof.gif"  alt="Demo: MAC spoofing" title="Automatic MAC address spoofing"/>
+</div>
+<p>Change interface MAC to a <b>user-defined address</b>, or to the <b>address of an actual supplicant</b> behind the proxy learned during runtime. This enables the device running <b>peapod</b> to masquerade as the supplicant and originate what appears to be authorized network traffic once the supplicant establishes an EAPOL session (as long as MACsec is not in use).</p>
 <h2>Getting started</h2>
 <h3>Documentation</h3>
 <h4>Manual pages</h4>
@@ -157,7 +166,7 @@ $ sudo dnf install peapod
 iface eth1;
 </pre><p>This is the minimum required config and silently proxies all EAPOL packets between <b>eth0</b> and <b>eth1</b>.</p>
 <h4>Anything more</h4>
-<p>See the manual pages for much more extensive documentation.</p>
+<p>See the <a href="#manual-pages">manual pages</a> for much more extensive documentation.</p>
 <h3>Usage</h3>
 <p>Start <b>peapod</b>: </p><pre class="fragment">$ sudo systemctl start peapod
 </pre><p>Logs are saved to <code>/var/log/peapod.log</code> by default.</p>
@@ -177,7 +186,7 @@ $ sudo make uninstall
 <p>Prerequisite: a recent-ish version of <code>doxygen</code>.</p>
 <h4>Build</h4>
 <pre class="fragment">$ make html
-</pre><p>Also cleans any compiled files and existing source code documentation. The results will look like <a href="https://kangtastic.github.io/peapod/html/index.html">these</a> and are at <code>html/index.html</code> in the program sources.</p>
+</pre><p>Also cleans any compiled files and existing source code documentation. The result can be found at <code>html/index.html</code> in the program sources and will look like <a href="https://kangtastic.github.io/peapod/html/index.html">this</a>.</p>
 <h4>Clean</h4>
 <pre class="fragment">$ make cleanhtml
 </pre><h2>Legal</h2>
