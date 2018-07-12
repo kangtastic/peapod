@@ -1,3 +1,9 @@
+peapod (0.1.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- James Seo <kangscinate@gmail.com>  Thu, 12 Jul 2018 02:13:34 -0700
+
 peapod (0.1.0-1) unstable; urgency=low
 
   * Initial release
