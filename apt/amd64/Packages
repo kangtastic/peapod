@@ -21,3 +21,26 @@ Description: EAPOL Proxy Daemon
  considered a (highly) rudimentary general-purpose
  transparent bridging firewall/rewriting proxy for EAPOL.
 
+Package: peapod
+Version: 0.1.1-1
+Architecture: amd64
+Maintainer: James Seo <kangscinate@gmail.com>
+Installed-Size: 165
+Depends: libc6 (>= 2.16)
+Filename: amd64/peapod_0.1.1-1_amd64.deb
+Size: 51492
+MD5sum: 5bee43fb65f6d4cc72c6c3312f63abbf
+SHA1: 06b7fded59c07f03ff6d1a44df542d69ba7288d1
+SHA256: f9a0537819db8410e06044e10b56237b6ec3914fa63e0c4c9f7a85b462713b83
+Section: net
+Priority: optional
+Homepage: https://github.com/kangscinate/peapod
+Description: EAPOL Proxy Daemon
+ peapod is a daemon that proxies IEEE 802.1X Extensible
+ Authentication Protocol over LAN (EAPOL) packets between Ethernet
+ interfaces.
+ .
+ It supports a few tricks on a per-interface basis, so it may be
+ considered a (highly) rudimentary general-purpose
+ transparent bridging firewall/rewriting proxy for EAPOL.
+

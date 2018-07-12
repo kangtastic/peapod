@@ -23,7 +23,7 @@ for f in $DEBS/${NAME}_*_$ARCH.deb; do
 	fi
 done
 
-dpkg-scanpackages $ARCH /dev/null | tee $ARCH/Packages | gzip -9c > $ARCH/Packages.gz
+dpkg-scanpackages -m $ARCH /dev/null | tee $ARCH/Packages | gzip -9c > $ARCH/Packages.gz
 
 apt-ftparchive release $ARCH /dev/null > $ARCH/Release
 
