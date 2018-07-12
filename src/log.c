@@ -82,7 +82,7 @@ static void log_to_file(const char *msg, int level, FILE* out)
 		fmt = "%X";
 		desc = args.color ? clevels[level] : levels[level];
 	} else {
-		fmt = "%c";
+		fmt = "%x %X";
 		desc = levels[level];
 
 	}
