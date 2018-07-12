@@ -1,6 +1,6 @@
 Summary: EAPOL Proxy Daemon
 Name: peapod
-Version: 0.1.0
+Version: 0.1.1
 Release: 1
 License: GPLv3+
 Group: System Environment/Daemons
@@ -32,7 +32,7 @@ bridging firewall/rewriting proxy for EAPOL.
 %build
 CFLAGS="$RPM_OPT_FLAGS -fPIC -pie -Wl,-z,relro -Wl,-z,now"
 export CFLAGS
-make %{?_smp_mflags} 
+make %{?_smp_mflags}
 
 %install
 make DESTDIR=%{buildroot} install
@@ -64,5 +64,7 @@ echo "# iface eth1;" >> %{buildroot}%{_sysconfdir}/%{name}.conf
 %{_sbindir}/%{name}
 
 %changelog
+* Thu Jul 12 2018 James Seo <kangscinate@gmail.com> - 0.1.1-1
+- New upstream release
 * Sun Jul 8 2018 James Seo <kangscinate@gmail.com> - 0.1.0-1
 - Initial release
